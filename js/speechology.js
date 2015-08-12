@@ -1,25 +1,29 @@
 // webspeech
 var speechology = (function(){
     "use strict";
+    
     //check compatibility
     if (!('webkitSpeechRecognition' in window) || !('speechSynthesis' in window)){
         return {compatible: false};
     }
-     
+    
     
     //--------------------------------- variables --------------------------------
     var __speechQueueIndex = -1;
     var __speechQueue = [];
     var __professors = {};
     var __parsed = false;
+    var __currentSpeechToText;
+    var __currentTextToSpeech;
+    var __isRunning = false; 
     
     //callbacks
     var __callbacks = {
         'audioStart': [],
         'audioEnd': [],
-        'voiceRecStart': [],
-        'voiceRecEnd': [],
-        'voiceResult': [],
+        'voiceCaptureStart': [],
+        'voiceCaptureEnd': [],
+        'voiceCaptureResult': [],
         'finished': []
     };
 
@@ -30,13 +34,45 @@ var speechology = (function(){
         __professors[name] = fun;
     };
     
-    
     var _emit = function(eventName){
         var args = Array.prototype.slice.call(arguments, 1);
-        for (cb of callbacks[eventName]){
+        for (var cb of __callbacks[eventName]){
             if(cb.apply(null, args))
                 return true;
         }
+    };
+    
+    var _on = function(eventName, cb){
+      
+        if (typeof cb !== 'function'){
+            throw new Error("callback for event " + eventName + " must be a function.");
+            return;
+        }
+      
+        var found = false;
+      
+        for (var event in __callbacks){
+            if (event === eventName){
+                found = true;
+                __callbacks[event].push(cb);
+            }
+        }
+      
+        if (!found) throw new Error("Incorrect speechology.on event name: " + eventName);
+    };
+    
+    var _endHelper = function(cb){
+        return function(e){ 
+            if (__isRunning) cb(e); 
+        };
+    };
+    
+    var _next = function(){
+        __speechQueueIndex++;
+        if (__speechQueueIndex < __speechQueue.length){
+            __speechQueue[__speechQueueIndex].fun(__speechQueue[__speechQueueIndex].element);
+        } else
+            _emit('finished');
     };
     
     var _parse = function(parentElem){
@@ -44,6 +80,18 @@ var speechology = (function(){
         Array.prototype.forEach.call(elements, function(elem){
             __speechQueue.push({fun: __professors[elem.getAttribute('data-prof-of')], element: elem});
         });
+    };
+    
+    var _pause = function(){
+        __isRunning = false;
+        if (__currentSpeechToText)
+            __currentSpeechToText.recognition.abort();
+        speechSynthesis.cancel();
+    };
+    
+    var _continue = function(){
+        if (__currentTextToSpeech)
+            __currentTextToSpeech.speak();
     };
     
     var _captureVoice = function(utteranceHandle, cb){
@@ -105,39 +153,44 @@ var speechology = (function(){
         //set the start time
         recognition.onstart = function(e){ 
             recognition.startTime = e.timeStamp; 
+            __currentSpeechToText = handle;
+            _emit('voiceCaptureStart');
         };
         
         
-        recognition.onresult = function(event){
+        recognition.onresult = _endHelper(function(event){
               for (var i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal){
                     successfull = true;
                     transcript = event.results[i][0].transcript.toLowerCase();
-                    cb.call(handle, transcript);
+                    if (!_emit('voiceCaptureResult', utteranceHandle, handle))
+                        cb.call(handle, transcript);
                 }
               }
-          };
+          });
         
         
-        recognition.onerror = function(e){
+        recognition.onerror = _endHelper(function(e){
             if (event.error === "not-allowed")
                 notAllowed = true;
-        };
+        });
                 
         
         //fallback if it didn't work
-        recognition.onend = function(e){ 
+        recognition.onend = _endHelper(function(e){ 
+            _emit("voiceCaptureEnd");
             if (!successfull){
                 //sometimes on mobile phones, the onnomatch event is thrown immediately. 
                 // in that case, we don't want to repeat ourselves, just start listening again.
                 if (notAllowed)
                     _speak("The microphone is blocked on this webpage. Please enable the microphone.");
+                //TODO, the not allowed speech will play when you hit continue
                 else if (e.timeStamp - recognition.startTime < 1000)
                     recognition.start();
                 else
                     handle.unclear();
             }
-        };
+        });
         
         recognition.start();
     };
@@ -152,6 +205,9 @@ var speechology = (function(){
                 //must use a timeout or the onend function won't be called... its weird
                 //relevant StackOverflow: http://stackoverflow.com/questions/23483990/speechsynthesis-api-onend-callback-not-working#
                 setTimeout(function(){ window.speechSynthesis.speak(utterance); }, 1000);
+                __currentTextToSpeech = handle;
+                __isRunning = true;
+                _emit('audioStart', textToSay);
             },
             captureVoice: function(cb){ _captureVoice(handle, cb); },
             yesno: function(yes, no){ 
@@ -161,8 +217,9 @@ var speechology = (function(){
             }
         };
         
-        utterance.onerror = function(e){ console.log(e); };
-        utterance.onend = function(){
+        utterance.onerror = function(e){ _log("utterance.onerror", e); };
+        utterance.onend = _endHelper(function(){
+            _emit("audioEnd");
             if (cb){
                 if (captureVoice)
                     handle.captureVoice(cb);
@@ -170,16 +227,15 @@ var speechology = (function(){
                     cb.call(handle);
             } else
                 speechology.next();
-        };
+        });
         
-        _log("Hello", "this is a text", utterance);
         handle.speak();
     };
         
     
     //------------------------------- pre-built professors -----------------------------
     _addProfessor('name', function(elem){
-        speechology.speak("Please spell your " + elem.getAttribute('data-prof-name') + " name", true,
+        speechology.speak("Please spell your " + elem.getAttribute('data-name') + " name", true,
                       function(transcript){
             transcript = this.removeSpaces(transcript);
             elem.value = transcript;
@@ -188,12 +244,14 @@ var speechology = (function(){
     });
     
     _addProfessor('email', function(elem){
-        speechology.speak("Please spell your email address up to the at symbol", true, function(firstTranscript){
+        speechology.speak("Please spell your email address up to the at symbol", true, 
+                          function(firstTranscript){
             elem.value = firstTranscript;
             this.confirm(this.spellOut(firstTranscript).replace(/\./g, "dot, "), function(){
                 elem.value = (firstTranscript += '@');
                 speechology.speak("Please say or spell the remaining part of your email address", true, 
                               function(lastTranscript){
+                    lastTranscript.replace('at', "");
                     elem.value = firstTranscript + lastTranscript;
                     this.confirm(lastTranscript.replace(/\./g, "dot, "));
                 });
@@ -201,12 +259,33 @@ var speechology = (function(){
         });     
     });
     
+    _addProfessor('phone-number', function(elem){
+        speechology.speak("Please say the area code of your phone number", true, function(areaCodeTranscript){
+            var saved = this;
+            areaCodeTranscript = this.removeNonDigits(areaCodeTranscript);
+            elem.value = areaCodeTranscript;
+            if (areaCodeTranscript.length !== 3 && !isNaN(Number(areaCodeTranscript)))
+                this.unclear("Your area code must be 3 digits long.");
+            else{
+                speechology.speak("Please say the remaining 7 digits of your phone number", true, function(remainingTranscript){
+                    remainingTranscript = this.removeNonDigits(remainingTranscript);
+                    elem.value = areaCodeTranscript + remainingTranscript;
+                    if (remainingTranscript.length !== 7 && !isNaN(Number(remainingTranscript)))
+                        this.unclear();
+                    else
+                        saved.confirm(this.spellOut(areaCodeTranscript + remainingTranscript));
+                });
+            }
+        });
+    });
+
+    
     
     
     //------------------------------- public functions -----------------------------------
     var _interface = {
-        speak: function(textToSay, captureVoice, cb){
-            _speak(textToSay, captureVoice, cb);
+        speak: function(){
+            _speak.apply(null, arguments);
         },
             
         parse: function(path){
@@ -220,23 +299,24 @@ var speechology = (function(){
                 _parse(document);
             
         },
-        addProfessor: function(helperName, helperFunction){
-            _addProfessor(helperName, helperFunction);
+        addProfessor: function(){
+            _addProfessor.apply(null, arguments);
         },
         
         next: function(){
-            __speechQueueIndex++;
-            if (__speechQueueIndex < __speechQueue.length){
-                __speechQueue[__speechQueueIndex].fun(__speechQueue[__speechQueueIndex].element);
-            }
+            _next();
         },
         
         start: function(){ 
             if (!__parsed)
                 _interface.parse();
             
-            _interface.next(); 
+            _next(); 
         },
+        
+        pause: function(){ _pause(); },
+        continue: function(){ _continue(); },
+        on: function(){ _on.apply(null, arguments); },
         
         compatible: true
     };
