@@ -34,6 +34,16 @@ var speechology = (function(){
         __professors[name] = fun;
     };
     
+    var _run = function(elem){
+        if (elem.hasOwnProperty('0'))
+            elem = elem[0];
+            
+        if (__professors.hasOwnProperty(elem.getAttribute('data-professor')))
+                __professors[elem.getAttribute('data-professor')](elem);
+            else
+                console.error("Incorrect professor name in runProfessor: " + elem.getAttribute('data-professor'));
+    };    
+        
     var _emit = function(eventName){
         var args = Array.prototype.slice.call(arguments, 1);
         for (var cb of __callbacks[eventName]){
@@ -68,17 +78,28 @@ var speechology = (function(){
     };
     
     var _next = function(){
-        __speechQueueIndex++;
+        __speechQueueIndex++; //todo if someone keeps calling start, this counter will just go up and up
         if (__speechQueueIndex < __speechQueue.length){
-            __speechQueue[__speechQueueIndex].fun(__speechQueue[__speechQueueIndex].element);
+            var skip = __speechQueue[__speechQueueIndex].fun(__speechQueue[__speechQueueIndex].element)
+            if (skip) _next();
         } else
             _emit('finished');
     };
     
+    var _back = function(){ 
+        __speechQueueIndex--;
+        if (__speechQueueIndex >= 0){
+            var skip = __speechQueue[__speechQueueIndex].fun(__speechQueue[__speechQueueIndex].element)
+            if (skip) back();
+        } 
+    
     var _parse = function(parentElem){
-        var elements = parentElem.querySelectorAll('[data-prof-of]');
+        var elements = parentElem.querySelectorAll('[data-professor]');
         Array.prototype.forEach.call(elements, function(elem){
-            __speechQueue.push({fun: __professors[elem.getAttribute('data-prof-of')], element: elem});
+            if (__professors.hasOwnProperty(elem.getAttribute('data-professor')))
+                __speechQueue.push({fun: __professors[elem.getAttribute('data-professor')], element: elem});
+            else
+                console.error("unknown professor name", elem.getAttribute('data-professor'));
         });
     };
     
@@ -121,7 +142,7 @@ var speechology = (function(){
             },
             yesno: function(yesCB, noCB){
                 if (transcript.indexOf('no') > -1)
-                    noCB();
+                    noCB ? noCB() : _next();
                 else if (transcript.indexOf('ye') > -1)
                     yesCB();
                 else
@@ -163,7 +184,7 @@ var speechology = (function(){
                 if (event.results[i].isFinal){
                     successfull = true;
                     transcript = event.results[i][0].transcript.toLowerCase();
-                    if (!_emit('voiceCaptureResult', utteranceHandle, handle))
+                    if (!_emit('voiceCaptureResult', transcript, utteranceHandle, handle))
                         cb.call(handle, transcript);
                 }
               }
@@ -246,12 +267,13 @@ var speechology = (function(){
     _addProfessor('email', function(elem){
         speechology.speak("Please spell your email address up to the at symbol", true, 
                           function(firstTranscript){
+            firstTranscript = this.removeSpaces(firstTranscript);
             elem.value = firstTranscript;
             this.confirm(this.spellOut(firstTranscript).replace(/\./g, "dot, "), function(){
                 elem.value = (firstTranscript += '@');
                 speechology.speak("Please say or spell the remaining part of your email address", true, 
                               function(lastTranscript){
-                    lastTranscript.replace('at', "");
+                    lastTranscript = this.removeSpaces(lastTranscript.replace('at', ""));
                     elem.value = firstTranscript + lastTranscript;
                     this.confirm(lastTranscript.replace(/\./g, "dot, "));
                 });
@@ -278,9 +300,41 @@ var speechology = (function(){
             }
         });
     });
-
     
+    _addProfessor('zipcode', function(elem){
+        speechology.speak("Please say your zip code.", true, function(transcript){
+            transcript = this.removeNonDigits(transcript).substring(0,5);
+            elem.value = transcript;
+            if (transcript.length === 5)
+                this.confirm();
+            else
+                this.unclear();
+        });
+    });
     
+    _addProfessor("message", function(elem){
+        speechology.speak("Would you like to add an additional message? Say yes or no.", true, function(t){
+            this.yesno(function(){
+                speechology.speak("Say your message now", true, function(messageTranscript){
+                    var saved = this;
+                    elem.value = messageTranscript;
+                    speechology.speak("Would you like to play back the message?", true, function(transcript){
+                        this.yesno(function(){
+                            saved.confirm();
+                        });
+                    });
+                });
+            });
+        });
+    });
+    
+    //------------------------------- pre-built callbacks ------------------------------
+    _on('voiceCaptureResult', function(transcript){
+        if (transcript.indexOf('next') > -1){
+            _next();
+            return true;
+        }
+    });
     
     //------------------------------- public functions -----------------------------------
     var _interface = {
@@ -301,6 +355,10 @@ var speechology = (function(){
         },
         addProfessor: function(){
             _addProfessor.apply(null, arguments);
+        },
+        
+        runProfessor: function(){
+            _run.apply(null, arguments);
         },
         
         next: function(){
