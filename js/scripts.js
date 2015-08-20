@@ -13,9 +13,7 @@ $(document).ready(function(){
             console.log(text); 
         });
         
-        //speechology.parse('#fff');
-        speechology.start();
-        
-        
+        myname = speechology.parse('#name');
+        email = speechology.parse('#email');
     }
 });
