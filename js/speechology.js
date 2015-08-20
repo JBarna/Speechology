@@ -9,13 +9,15 @@ var speechology = (function(){
     
     
     //--------------------------------- variables --------------------------------
-    var __speechQueueIndex = -1;
-    var __speechQueue = [];
     var __professors = {};
     var __parsed = false;
     var __currentSpeechToText;
     var __currentTextToSpeech;
     var __isRunning = false; 
+    var __runningAsQueue = false;
+    var __sectionQueue = [];
+    var __sectionQueueIndex = 0;
+    var __currentSection;
     
     //callbacks
     var __callbacks = {
@@ -24,7 +26,7 @@ var speechology = (function(){
         'voiceCaptureStart': [],
         'voiceCaptureEnd': [],
         'voiceCaptureResult': [],
-        'finished': []
+        'allFinished': []
     };
 
     // -------------------------------- private functions -------------------------
@@ -32,17 +34,7 @@ var speechology = (function(){
     
     var _addProfessor = function(name, fun){
         __professors[name] = fun;
-    };
-    
-    var _run = function(elem){
-        if (elem.hasOwnProperty('0'))
-            elem = elem[0];
-            
-        if (__professors.hasOwnProperty(elem.getAttribute('data-professor')))
-                __professors[elem.getAttribute('data-professor')](elem);
-            else
-                console.error("Incorrect professor name in runProfessor: " + elem.getAttribute('data-professor'));
-    };    
+    };   
         
     var _emit = function(eventName){
         var args = Array.prototype.slice.call(arguments, 1);
@@ -78,12 +70,12 @@ var speechology = (function(){
     };
     
     var _next = function(){
-        __speechQueueIndex++; //todo if someone keeps calling start, this counter will just go up and up
+        if
         if (__speechQueueIndex < __speechQueue.length){
-            var skip = __speechQueue[__speechQueueIndex].fun(__speechQueue[__speechQueueIndex].element)
+            var skip = __speechQueue[__speechQueueIndex].fun(__speechQueue[__speechQueueIndex].element);
             if (skip) _next();
         } else
-            _emit('finished');
+            _emit('allFinished');
     };
     
     var _back = function(){ 
@@ -91,16 +83,7 @@ var speechology = (function(){
         if (__speechQueueIndex >= 0){
             var skip = __speechQueue[__speechQueueIndex].fun(__speechQueue[__speechQueueIndex].element)
             if (skip) back();
-        } 
-    
-    var _parse = function(parentElem){
-        var elements = parentElem.querySelectorAll('[data-professor]');
-        Array.prototype.forEach.call(elements, function(elem){
-            if (__professors.hasOwnProperty(elem.getAttribute('data-professor')))
-                __speechQueue.push({fun: __professors[elem.getAttribute('data-professor')], element: elem});
-            else
-                console.error("unknown professor name", elem.getAttribute('data-professor'));
-        });
+        }
     };
     
     var _pause = function(){
@@ -254,6 +237,51 @@ var speechology = (function(){
     };
         
     
+    // --------------------------- section 'class' --------------------------------
+    function section(startingElem, conditionalFunction){
+        this.__speechQueueIndex = -1;
+        this.__speechQueue = [];
+        this.__conditionalFunction = conditionalFunction;
+        this.__onFinish = [];
+        
+        //add our speech elements to the queue
+        this._parse(startingElem);
+    }
+        
+    //parent elem is an array-like structure of elements
+    section.prototype._parse = function(elementsToParse){
+        
+        var pushSpeech = function(elem){
+            if (this.__professors.hasOwnProperty(elem.getAttribute('data-professor')))
+                this.__speechQueue.push({fun: this.__professors[elem.getAttribute('data-professor')], element: elem});
+            else
+                console.error("unknown professor name", elem.getAttribute('data-professor'));
+        };
+        
+        Array.prototype.forEach.call(elementsToParse, function(superElem){
+            
+            if (superElem.hasAttribute('data-professor'));
+                pushSpeech(superElem);
+
+            var subElements = superElem.querySelectorAll('[data-professor]');
+            Array.prototype.forEach.call(subElements, function(elem){
+                pushSpeech(elem);
+            });
+        });
+    };
+    
+    section.prototype.run = function(){
+        
+        __currentSection = this;
+    };
+    
+    section.prototype._next = function(){
+        
+    
+    section.prototype.onFinish = function(cb){
+        this.__onFinish.push(cb);
+    }
+    
     //------------------------------- pre-built professors -----------------------------
     _addProfessor('name', function(elem){
         speechology.speak("Please spell your " + elem.getAttribute('data-name') + " name", true,
@@ -341,24 +369,24 @@ var speechology = (function(){
         speak: function(){
             _speak.apply(null, arguments);
         },
-            
-        parse: function(path){
+        
+        parse: function(element){
             __parsed = true;
-            if (typeof path === "string"){
-                var elements = document.querySelectorAll(path);
-                Array.prototype.forEach.call(elements, function(elem){
-                    _parse(elem);
-                });
-            } else 
-                _parse(document);
+            
+            if (typeof element === "string")
+                element = document.querySelectorAll(element);
+            
+            //user passed a single element in, need to format to array
+            else if (!element.length)
+                element = [].push(element);
+            
+            if (element.length !== 0){
+                
+                
             
         },
         addProfessor: function(){
             _addProfessor.apply(null, arguments);
-        },
-        
-        runProfessor: function(){
-            _run.apply(null, arguments);
         },
         
         next: function(){
@@ -367,13 +395,16 @@ var speechology = (function(){
         
         start: function(){ 
             if (!__parsed)
-                _interface.parse();
+                _interface.parse(document);
             
+            __runningAsQueue = true;
             _next(); 
         },
         
         pause: function(){ _pause(); },
+            
         continue: function(){ _continue(); },
+            
         on: function(){ _on.apply(null, arguments); },
         
         compatible: true
