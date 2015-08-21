@@ -2,6 +2,9 @@
 var speechology = (function(){
     "use strict";
     
+    //use this variable to control debugging.
+    var DEBUG = true;
+    
     //check compatibility
     if (!('webkitSpeechRecognition' in window) || !('speechSynthesis' in window)){
         return {compatible: false};
@@ -14,6 +17,7 @@ var speechology = (function(){
     var __currentTextToSpeech;
     var __isRunning = false; 
     var __currentSection = null;
+    var __nextEnabled = true;
     
     //callbacks
     var __callbacks = {
@@ -25,7 +29,7 @@ var speechology = (function(){
     };
 
     // -------------------------------- private functions -------------------------
-    var _log = console.log.bind(console, "SPEECHOLOGY DEBUG: ");
+    var _log = DEBUG? console.log.bind(console, "SPEECHOLOGY DEBUG: ") : function(){};
         
     var _emit = function(eventName){
         var args = Array.prototype.slice.call(arguments, 1);
@@ -87,7 +91,7 @@ var speechology = (function(){
             },
             yesno: function(yesCB, noCB){
                 if (transcript.indexOf('no') > -1)
-                    noCB ? noCB() : _next();
+                    noCB ? noCB() : speechology.next();
                 else if (transcript.indexOf('ye') > -1)
                     yesCB();
                 else
@@ -95,7 +99,7 @@ var speechology = (function(){
             },
             
             unclear: function(message){
-                _speak(message || "Sorry, I didn't catch that.", false, function(){ 
+                _speak(message || "Sorry, I didn't catch that.", false, function(){
                     utteranceHandle.speak(); 
                 }); 
             },
@@ -149,7 +153,7 @@ var speechology = (function(){
                 //sometimes on mobile phones, the onnomatch event is thrown immediately. 
                 // in that case, we don't want to repeat ourselves, just start listening again.
                 if (notAllowed)
-                    _speak("The microphone is blocked on this webpage. Please enable the microphone.");
+                    _speak("The microphone is blocked on this webpage. Please enable the microphone.", false, function(){});
                 //TODO, the not allowed speech will play when you hit continue
                 else if (e.timeStamp - recognition.startTime < 1000)
                     recognition.start();
@@ -170,10 +174,12 @@ var speechology = (function(){
             speak: function(){ 
                 //must use a timeout or the onend function won't be called... its weird
                 //relevant StackOverflow: http://stackoverflow.com/questions/23483990/speechsynthesis-api-onend-callback-not-working#
-                setTimeout(function(){ window.speechSynthesis.speak(utterance); }, 1000);
-                __currentTextToSpeech = handle;
-                __isRunning = true;
-                _emit('audioStart', textToSay);
+                setTimeout(function(){ 
+                    window.speechSynthesis.speak(utterance); 
+                    __currentTextToSpeech = handle;
+                    __isRunning = true;
+                    _emit('audioStart', textToSay);
+                }, 1000);
             },
             captureVoice: function(cb){ _captureVoice(handle, cb); },
             yesno: function(yes, no){ 
@@ -246,12 +252,15 @@ var speechology = (function(){
         //wait until the other speeches' callbacks have run their course before starting again
         setTimeout(function(){ 
             __currentSection = _this;
+            __nextEnabled = true;
+            _this.__speechQueueIndex--;
             _this._next();
         }, 1000); 
     
     };
         
     Section.prototype._next = function(){
+        this.__speechQueueIndex++;
         if (this.__speechQueueIndex < this.__speechQueue.length){
             var fun = this.__speechQueue[this.__speechQueueIndex].fun;
             var elem = this.__speechQueue[this.__speechQueueIndex].element;
@@ -286,8 +295,6 @@ var speechology = (function(){
         parse: function(element, conditionalFunction){
             var save = element;
             
-            console.log(element);
-            
             if (typeof element === "string")
                 element = document.querySelectorAll(element);
             
@@ -307,11 +314,14 @@ var speechology = (function(){
         },
         
         next: function(){
-            console.log(__currentSection);
-            if (__currentSection){
-                __currentSection.__speechQueueIndex++;
-                __currentSection._next();
+            if (__nextEnabled){
+                if (__currentSection)
+                    __currentSection._next();
             }
+        },
+        
+        disableNext: function(){
+            __nextEnabled = false;
         },
         
         pause: function(){ _pause(); },
@@ -399,6 +409,114 @@ var speechology = (function(){
             });
         });
     });
+    
+    _interface.addProfessor('date', function(elem){
+        speechology.speak("Please say your date of birth", true, function(transcript){
+            var _this = this;
+            var year, month, day;
+            var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+            //go through what the person said and split it up
+            for (var part of transcript.split(' ')){
+                //try to parse to int
+                var num = parseInt(part);
+                if (isNaN(num)){
+                    //look for month
+                    for (var monthIndex in months){
+                          if (part.indexOf(months[monthIndex].toLowerCase()) > -1){
+                              month = Number(monthIndex) + 1;
+                              if (month < 10)
+                                  month = "0" + month;
+                          }
+                      }
+                } else {
+                    if ((num + "").length === 4)
+                        year = num;
+                    else{
+                        day = num;
+                        if (day < 10)
+                            day = "0" + day;
+                    }
+                }
+            }     
+
+
+            var finish = function(){
+                var final = year + '-' + month + '-' + day;
+                elem.value = final;
+                _this.confirm(final);
+            };
+                
+                
+            //see what isn't defined... then ask.
+            var findNextDatePart = function(){
+
+                var getYear = function(){
+                    speechology.speak("Please say the year you were born", true, function(transcript){
+                        if (transcript.length === 4 && !isNaN(Number(transcript))){
+                            this.confirm(transcript, function(){
+                                year = Number(transcript);
+                                findNextDatePart();
+                            });
+                        }
+                        else
+                            this.unclear("Your year of birth must be four digits.");
+                    });
+                };
+
+                var getMonth = function(){
+                    speechology.speak("Please say the month you were born.", true, function(transcript){
+                        var found = false;
+                          //loop through all the available months in the picker
+
+                          for (var monthIndex in months){
+                              if (transcript.indexOf(months[monthIndex].toLowerCase()) > -1){
+                                  month = Number(monthIndex) + 1;
+                                  if (month < 10)
+                                      month = "0" + month;
+                                  found = true;
+                              }
+                          }
+                        if (found)
+                            findNextDatePart();
+                        else
+                            this.unclear();
+                    });
+                };
+
+                var getDay = function(){
+                speechology.speak("Please say the day you were born.", true, function(transcript){
+                          day = parseInt(transcript);
+                          if (day !== NaN && day < 32){
+                              if (day < 10)
+                                  day = "0" + day;
+                              this.confirm(transcript, function(){
+                                  findNextDatePart();
+                              });
+                          } else
+                              this.unclear("Please say two digits, representing the day you were born.");
+                      });
+                };
+
+                if (!year)
+                    getYear();
+                else if (!month)
+                    getMonth();
+                else if (!day)
+                    getDay();
+                else{
+                    finish();
+                }
+            };
+            
+            if (!year || !month || !day)
+                findNextDatePart();
+            else 
+                finish();
+        });
+    });
+
+        
         
     return _interface;
 })();
