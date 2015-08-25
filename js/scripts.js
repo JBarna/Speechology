@@ -15,6 +15,6 @@ $(document).ready(function(){
         
         myname = speechology.parse('#name');
         email = speechology.parse('#email');
-        speechology.parse(document).run();
+        window.r = speechology.parse(document);r.
     }
 });

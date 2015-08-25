@@ -10,7 +10,6 @@ var speechology = (function(){
         return {compatible: false};
     }
     
-    
     //--------------------------------- variables --------------------------------
     var __professors = {};
     var __currentSpeechToText;
@@ -29,7 +28,7 @@ var speechology = (function(){
     };
 
     // -------------------------------- private functions -------------------------
-    var _log = DEBUG? console.log.bind(console, "SPEECHOLOGY DEBUG: ") : function(){};
+    var _log = DEBUG ? console.log.bind(console, "SPEECHOLOGY DEBUG: ") : function(){};
         
     var _emit = function(eventName){
         var args = Array.prototype.slice.call(arguments, 1);
@@ -163,6 +162,7 @@ var speechology = (function(){
         });
         
         recognition.start();
+        return recognition;
     };
     
     var _speak = function(textToSay, captureVoice, cb){
@@ -202,6 +202,7 @@ var speechology = (function(){
         });
         
         handle.speak();
+        return utterance;
     };
     
     var _pause = function(){ 
@@ -250,6 +251,9 @@ var speechology = (function(){
         _pause(); //cancel other speeches if they're going on.
         
         //wait until the other speeches' callbacks have run their course before starting again
+        /* the reason we decriment the speechQueueIndex by 1 is because, if the voice was paused at any point, 
+        and this is re-run, we want to start back at the last speech. */
+        
         setTimeout(function(){ 
             __currentSection = _this;
             __nextEnabled = true;
@@ -264,8 +268,11 @@ var speechology = (function(){
         if (this.__speechQueueIndex < this.__speechQueue.length){
             var fun = this.__speechQueue[this.__speechQueueIndex].fun;
             var elem = this.__speechQueue[this.__speechQueueIndex].element;
-            fun(elem);
             
+            if (!elem.disabled)
+                fun(elem);
+            else
+                this._next();
         } else {
             //emit the finished event
             for (cb of this.__onFinish){
@@ -314,10 +321,9 @@ var speechology = (function(){
         },
         
         next: function(){
-            if (__nextEnabled){
-                if (__currentSection)
-                    __currentSection._next();
-            }
+            if (__nextEnabled && __currentSection)
+                __currentSection._next();
+            
         },
         
         disableNext: function(){
@@ -410,7 +416,7 @@ var speechology = (function(){
         });
     });
     
-    _interface.addProfessor('date', function(elem){
+    _interface.addProfessor('dateofbirth', function(elem){
         speechology.speak("Please say your date of birth", true, function(transcript){
             var _this = this;
             var year, month, day;
