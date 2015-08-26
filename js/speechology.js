@@ -181,7 +181,7 @@ var speechology = (function(){
                     _emit('audioStart', textToSay);
                 }, 1000);
             },
-            captureVoice: function(cb){ _captureVoice(handle, cb); },
+            captureVoice: function(cb){ return _captureVoice(handle, cb); },
             yesno: function(yes, no){ 
                 _captureVoice(handle, function(){
                     this.yesno(yes, no);
@@ -296,7 +296,7 @@ var speechology = (function(){
     //------------------------------- public functions -----------------------------------
     var _interface = {
         speak: function(){
-            _speak.apply(null, arguments);
+            return _speak.apply(null, arguments);
         },
         
         parse: function(element, conditionalFunction){
