@@ -344,7 +344,7 @@ var speechology = (function(){
     
     //------------------------------- pre-built professors -----------------------------
     _interface.addProfessor('name', function(elem){
-        speechology.speak("Please spell your " + elem.getAttribute('data-name') + " name", true,
+        speechology.speak("Please spell your " + (elem.getAttribute('data-name') || "") + " name", true,
                       function(transcript){
             transcript = this.removeSpaces(transcript);
             elem.value = transcript;
@@ -416,8 +416,16 @@ var speechology = (function(){
         });
     });
     
-    _interface.addProfessor('dateofbirth', function(elem){
-        speechology.speak("Please say your date of birth", true, function(transcript){
+    _interface.addProfessor('date', function(elem){
+        
+        var question = elem.getAttribute('data-date');
+        if (!question){
+            console.error("Professor 'date' requires an additional attribute 'data-date' which specifies what question to ask the user. Moving to next question.");
+            speechology.next();
+            return;
+        }
+        
+        speechology.speak(question, true, function(transcript){
             var _this = this;
             var year, month, day;
             var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
