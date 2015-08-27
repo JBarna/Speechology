@@ -36,7 +36,9 @@ form.run();
 
 ## Overview
 Speechology.js comes in **two parts**. 
+
 1) An incredibly easy API for saying and capturing voice, like `Speechology.speak('the user will hear this!');`
+
 2) Parser which finds your HTML elements with `data-professor` attributes, connects them with your speech and voice recognition API calls, and runs them all in a natural sequence. 
 
 You can use one part of Speechology.js entirely without using the other, or you can use both to customize your webpage even farther!
@@ -56,6 +58,7 @@ These Professors are ready out of the box. Just drop the `data-professor` attrib
 
 ## How to make your own professors
 Need a professor that you don't see pre-included? Follow the steps below and make one! 
+
 1) Use [the voice and speech recognition API][5] to build a set of speeches and voice recognitions that acheive a goal. Note that here, `element` is the HTML element that the `data-professor` attribute was attached to.
 ``` javascript
 var callback = function(element){
@@ -78,8 +81,11 @@ Speechology.addProfessor('whats-up', callback);
 
 ## Speechology.js API
 The API is composed of three parts
+
 1) [General API](#general-api)
+
 2) [Speech and Voice Recognition API][5]
+
 3) [Parser API][6]
 
 ## General API
