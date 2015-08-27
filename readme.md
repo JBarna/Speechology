@@ -294,10 +294,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-[1]: #what-are-speechology.js-professors
+[1]: #what-are-speechologyjs-professors
 [2]: #pre-included-professors
 [3]: #how-to-make-your-own-professors
-[4]: #speechology-api
+[4]: #speechologyjs-api
 [5]: #speech-and-voice-recognition-api
 [6]: #parser-api
 [7]: #events
