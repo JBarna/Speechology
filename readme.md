@@ -102,9 +102,9 @@ Starts speaking from the last text-to-speech spoken.
 Registers callbacks for [Speechology events][7].
 
 ## Speech and Voice Recognition API
-* You begin by speaking to the user
-* After speaking to them, you can do certain things
-* After hearing from them, you can do certain things
+* [You begin by speaking to the user](#speechologyspeaktext_to_say-follow_up_with_voice-callback)
+* [After speaking to them, you can do certain things](#available-after-youve-spoken-to-the-user-but-before-youve-heard-from-them)
+* [After hearing from them, you can do certain things](#available-after-youve-captured-voice-from-the-user)
 
 #### Speechology.next()
 If you are building your own professors, you must remember to call this function in your callbacks. Otherwise, Speechology.js will not know when to move onto the next parsed element.
@@ -159,7 +159,7 @@ this.captureVoice(function(whatTheUserSaid){
 ```
 But it can be called prior to capturing the voice for convenience
 
-## After you've captured voice from the user
+## Available after you've captured voice from the user
 #### this.recognition
 A reference to the underlying WebkitSpeechRecognition. 
 
