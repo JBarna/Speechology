@@ -1,5 +1,5 @@
 // webspeech
-var speechology = (function(){
+var Speechology = (function(){
     "use strict";
     
     //use this variable to control debugging.
@@ -54,7 +54,7 @@ var speechology = (function(){
             }
         }
       
-        if (!found) throw new Error("Incorrect speechology.on event name: " + eventName);
+        if (!found) throw new Error("Incorrect Speechology.on event name: " + eventName);
     };
     
     var _endHelper = function(cb){
@@ -83,14 +83,14 @@ var speechology = (function(){
                 
                 _speak("I heard, " + modifiedTranscript + ". Is this correct? Say yes or no", true, 
                        function(transcript){
-                    this.yesno(function(){ yesCB? yesCB() : speechology.next(); }, 
+                    this.yesno(function(){ yesCB? yesCB() : Speechology.next(); }, 
                                  function(){ utteranceHandle.speak(); }
                     );
                 });
             },
             yesno: function(yesCB, noCB){
                 if (transcript.indexOf('no') > -1)
-                    noCB ? noCB() : speechology.next();
+                    noCB ? noCB() : Speechology.next();
                 else if (transcript.indexOf('ye') > -1)
                     yesCB();
                 else
@@ -205,7 +205,7 @@ var speechology = (function(){
                 else
                     cb.call(handle);
             } else
-                speechology.next();
+                Speechology.next();
         });
         
         handle.speak();
@@ -323,7 +323,7 @@ var speechology = (function(){
             if (element.length !== 0)
                 return new Section(element);
             else
-                console.error("No speechology elements found in: " , save); 
+                console.error("No Speechology elements found in: " , save); 
         },
         
         addProfessor: function(name, fun){
@@ -354,7 +354,7 @@ var speechology = (function(){
     
     //------------------------------- pre-built professors -----------------------------
     _interface.addProfessor('name', function(elem){
-        speechology.speak("Please spell your " + (elem.getAttribute('data-name') || "") + " name", true,
+        Speechology.speak("Please spell your " + (elem.getAttribute('data-name') || "") + " name", true,
                       function(transcript){
             transcript = this.removeSpaces(transcript);
             elem.value = transcript;
@@ -363,13 +363,13 @@ var speechology = (function(){
     });
     
     _interface.addProfessor('email', function(elem){
-        speechology.speak("Please spell your email address up to the at symbol", true, 
+        Speechology.speak("Please spell your email address up to the at symbol", true, 
                           function(firstTranscript){
             firstTranscript = this.removeSpaces(firstTranscript);
             elem.value = firstTranscript;
             this.confirm(this.spellOut(firstTranscript).replace(/\./g, "dot, "), function(){
                 elem.value = (firstTranscript += '@');
-                speechology.speak("Please say or spell the remaining part of your email address", true, 
+                Speechology.speak("Please say or spell the remaining part of your email address", true, 
                               function(lastTranscript){
                     lastTranscript = this.removeSpaces(lastTranscript.replace('at', ""));
                     elem.value = firstTranscript + lastTranscript;
@@ -380,14 +380,14 @@ var speechology = (function(){
     });
     
     _interface.addProfessor('phone-number', function(elem){
-        speechology.speak("Please say the area code of your phone number", true, function(areaCodeTranscript){
+        Speechology.speak("Please say the area code of your phone number", true, function(areaCodeTranscript){
             var saved = this;
             areaCodeTranscript = this.removeNonDigits(areaCodeTranscript);
             elem.value = areaCodeTranscript;
             if (areaCodeTranscript.length !== 3 && !isNaN(Number(areaCodeTranscript)))
                 this.unclear("Your area code must be 3 digits long.");
             else{
-                speechology.speak("Please say the remaining 7 digits of your phone number", true, function(remainingTranscript){
+                Speechology.speak("Please say the remaining 7 digits of your phone number", true, function(remainingTranscript){
                     remainingTranscript = this.removeNonDigits(remainingTranscript);
                     elem.value = areaCodeTranscript + remainingTranscript;
                     if (remainingTranscript.length !== 7 && !isNaN(Number(remainingTranscript)))
@@ -400,7 +400,7 @@ var speechology = (function(){
     });
     
     _interface.addProfessor('zipcode', function(elem){
-        speechology.speak("Please say your zip code.", true, function(transcript){
+        Speechology.speak("Please say your zip code.", true, function(transcript){
             transcript = this.removeNonDigits(transcript).substring(0,5);
             elem.value = transcript;
             if (transcript.length === 5)
@@ -411,12 +411,12 @@ var speechology = (function(){
     });
     
     _interface.addProfessor("message", function(elem){
-        speechology.speak("Would you like to add an additional message? Say yes or no.", true, function(t){
+        Speechology.speak("Would you like to add an additional message? Say yes or no.", true, function(t){
             this.yesno(function(){
-                speechology.speak("Say your message now", true, function(messageTranscript){
+                Speechology.speak("Say your message now", true, function(messageTranscript){
                     var saved = this;
                     elem.value = messageTranscript;
-                    speechology.speak("Would you like to play back the message?", true, function(transcript){
+                    Speechology.speak("Would you like to play back the message?", true, function(transcript){
                         this.yesno(function(){
                             saved.confirm();
                         });
@@ -431,11 +431,11 @@ var speechology = (function(){
         var question = elem.getAttribute('data-date');
         if (!question){
             console.error("Professor 'date' requires an additional attribute 'data-date' which specifies what question to ask the user. Moving to next question.");
-            speechology.next();
+            Speechology.next();
             return;
         }
         
-        speechology.speak(question, true, function(transcript){
+        Speechology.speak(question, true, function(transcript){
             var _this = this;
             var year, month, day;
             var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -476,7 +476,7 @@ var speechology = (function(){
             var findNextDatePart = function(){
 
                 var getYear = function(){
-                    speechology.speak("Please say the year you were born", true, function(transcript){
+                    Speechology.speak("Please say the year you were born", true, function(transcript){
                         if (transcript.length === 4 && !isNaN(Number(transcript))){
                             this.confirm(transcript, function(){
                                 year = Number(transcript);
@@ -489,7 +489,7 @@ var speechology = (function(){
                 };
 
                 var getMonth = function(){
-                    speechology.speak("Please say the month you were born.", true, function(transcript){
+                    Speechology.speak("Please say the month you were born.", true, function(transcript){
                         var found = false;
                           //loop through all the available months in the picker
 
@@ -509,7 +509,7 @@ var speechology = (function(){
                 };
 
                 var getDay = function(){
-                speechology.speak("Please say the day you were born.", true, function(transcript){
+                Speechology.speak("Please say the day you were born.", true, function(transcript){
                           day = parseInt(transcript);
                           if (day !== NaN && day < 32){
                               if (day < 10)
