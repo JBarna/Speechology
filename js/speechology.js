@@ -171,6 +171,10 @@ var speechology = (function(){
     var _speak = function(textToSay, captureVoice, cb){
         var utterance = new SpeechSynthesisUtterance(textToSay);
         
+        //optional section argument
+        if (typeof captureVoice === 'function')
+            cb = captureVoice;
+        
         //handle for utterance
         var handle = {
             utterance: utterance,
@@ -194,7 +198,7 @@ var speechology = (function(){
         
         utterance.onerror = function(e){ _log("utterance.onerror", e); };
         utterance.onend = _endHelper(function(){
-            _emit("audioEnd");
+            _emit("audioEnd", textToSay);
             if (cb){
                 if (captureVoice)
                     handle.captureVoice(cb);
@@ -302,10 +306,13 @@ var speechology = (function(){
             return _speak.apply(null, arguments);
         },
         
-        parse: function(element, conditionalFunction){
+        parse: function(element){
             var save = element;
             
-            if (typeof element === "string")
+            if (element == null || element === "document")
+                element = [document];
+            
+            else if (typeof element === "string")
                 element = document.querySelectorAll(element);
             
             //user passed a single element in, need to format to array
@@ -314,7 +321,7 @@ var speechology = (function(){
             }
             
             if (element.length !== 0)
-                return new Section(element, conditionalFunction);
+                return new Section(element);
             else
                 console.error("No speechology elements found in: " , save); 
         },
