@@ -104,9 +104,11 @@ var speechology = (function(){
             },
             //helper methods
             removeSpaces: function(stringInput){
+                stringInput = stringInput || transcript;
                 return stringInput.replace(/\s/g, '');
             },
             spellOut: function(stringInput){
+                stringInput = stringInput || transcript;
                 var spelled = "";
                 for (var letter of stringInput)
                     spelled += ", " + letter;
@@ -114,6 +116,7 @@ var speechology = (function(){
                 return spelled;
             },
             removeNonDigits: function(stringInput){
+                stringInput = stringInput || transcript;
                 return stringInput.replace(/[^0-9]+/g, '');  
             }
             
