@@ -36,7 +36,7 @@ form.run();
 
 ## Overview
 Speechology.js comes in **two parts**. 
-1) An incredibly easy API for saying and capturing voice, like `Speechology.speak('the user will hear this!');
+1) An incredibly easy API for saying and capturing voice, like `Speechology.speak('the user will hear this!');`
 2) Parser which finds your HTML elements with `data-professor` attributes, connects them with your speech and voice recognition API calls, and runs them all in a natural sequence. 
 
 You can use one part of Speechology.js entirely without using the other, or you can use both to customize your webpage even farther!
