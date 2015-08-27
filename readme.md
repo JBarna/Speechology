@@ -6,19 +6,19 @@
 Web is becoming the *universal platform* for applications, yet lacks some of the most essential accessibility tools. **Using Speechology.js you can target:** Blind, visualy impaired, motor skilled challenged, and cognitively challenged, *all while providing a new interface for regular users.*
 
 ## How easy is it?
-1) Include Speechology.js in your HTML: 
+1. Include Speechology.js in your HTML: 
 ```html
 <script src="Speechology.js"></script>
 ```
-2) Attach Speechology.js Professors to your HTML elements: 
+2. Attach Speechology.js Professors to your HTML elements: 
 ```html
 <input type='num' data-professor='phone-number'/>
 ```
-3) Tell Speechology.js where to look in your webpage for these tags: 
+3. Tell Speechology.js where to look in your webpage for these tags: 
 ```javascript
 var form = Speechology.parse('#myForm');
 ```
-4) Start Speechology.js! 
+4. Start Speechology.js! 
 ```javascript
 form.run();
 ```
@@ -36,8 +36,8 @@ form.run();
 
 ## Overview
 Speechology.js comes in **two parts**. 
-1) An incredibly easy API for saying and capturing voice, like `Speechology.speak('the user will hear this!');`
-2) Parser which finds your HTML elements with `data-professor` attributes, connects them with your speech and voice recognition API calls, and runs them all in a natural sequence. 
+1. An incredibly easy API for saying and capturing voice, like `Speechology.speak('the user will hear this!');`
+2. Parser which finds your HTML elements with `data-professor` attributes, connects them with your speech and voice recognition API calls, and runs them all in a natural sequence. 
 
 You can use one part of Speechology.js entirely without using the other, or you can use both to customize your webpage even farther!
 
@@ -56,7 +56,7 @@ These Professors are ready out of the box. Just drop the `data-professor` attrib
 
 ## How to make your own professors
 Need a professor that you don't see pre-included? Follow the steps below and make one! 
-1) Use [the voice and speech recognition API][5] to build a set of speeches and voice recognitions that acheive a goal. Note that here, `element` is the HTML element that the `data-professor` attribute was attached to.
+1. Use [the voice and speech recognition API][5] to build a set of speeches and voice recognitions that acheive a goal. Note that here, `element` is the HTML element that the `data-professor` attribute was attached to.
 ``` javascript
 var callback = function(element){
     Speechology.speak("Whats up?? Say something and I'll hear it!", true,
@@ -66,11 +66,11 @@ var callback = function(element){
     });
 };
 ```
-2) Give a name to your new professor, attach the callback to its name, and add the professor to Speechology.js.
+2. Give a name to your new professor, attach the callback to its name, and add the professor to Speechology.js.
 ```javascript
 Speechology.addProfessor('whats-up', callback);
 ```
-3) Now you can use the `whats-up` professor with your HTML!
+3. Now you can use the `whats-up` professor with your HTML!
 ```html
 <input type='text' data-professor='whats-up'/>
 ```
@@ -78,9 +78,9 @@ Speechology.addProfessor('whats-up', callback);
 
 ## Speechology.js API
 The API is composed of three parts
-1) [General API](#general-api)
-2) [Speech and Voice Recognition API][5]
-3) [Parser API][6]
+1. [General API](#general-api)
+2. [Speech and Voice Recognition API][5]
+3. [Parser API][6]
 
 ## General API
 #### Speechology.compatible
