@@ -7,7 +7,7 @@ var Speechology = (function(){
     
     //check compatibility
     if (!('webkitSpeechRecognition' in window) || !('speechSynthesis' in window)){
-        return {compatible: false};
+        return { compatible: false };
     }
     
     //--------------------------------- variables --------------------------------
@@ -17,6 +17,7 @@ var Speechology = (function(){
     var __isRunning = false; 
     var __currentSection = null;
     var __nextEnabled = true;
+    var __lang = 'en-US';
     
     //callbacks
     var __callbacks = {
@@ -66,11 +67,11 @@ var Speechology = (function(){
         };
     };
     
-    var _captureVoice = function(utteranceHandle, cb){
+    var _speechRecognition = function(utteranceHandle, cb){
         
         // Voice variables specific to this webkitSPeechRecognition instance
         var recognition = new webkitSpeechRecognition(); 
-        recognition.lang = 'en-US';
+        recognition.lang = __lang;
         
         var successfull = false;
         var notAllowed = false;
@@ -78,17 +79,17 @@ var Speechology = (function(){
         
         var handle = {
             recognition: recognition,
-            
+
             confirm: function(modifiedTranscript, yesCB){ 
-                
+
                 // since both arguments are optional... check to see if first one is function.
                 if (typeof modifiedTranscript === "function"){
                     yesCB = modifiedTranscript;
                     modifiedTranscript = transcript;
                 } else
                     modifiedTranscript = modifiedTranscript || transcript;
-                
-                _speak("I heard, " + modifiedTranscript + ". Is this correct? Say yes or no", true, 
+
+                _textToSpeech("I heard, " + modifiedTranscript + ". Is this correct? Say yes or no", true, 
                        function(transcript){
                     this.yesno(function(){ yesCB? yesCB() : Speechology.next(); }, 
                                  function(){ utteranceHandle.speak(); }
@@ -103,9 +104,9 @@ var Speechology = (function(){
                 else
                     handle.unclear();
             },
-            
+
             unclear: function(message){
-                _speak(message || "Sorry, I didn't catch that.", false, function(){
+                _textToSpeech(message || "Sorry, I didn't catch that.", false, function(){
                     utteranceHandle.speak(); 
                 }); 
             },
@@ -126,7 +127,7 @@ var Speechology = (function(){
                 stringInput = stringInput || transcript;
                 return stringInput.replace(/[^0-9]+/g, '');  
             }
-            
+
         };
         
         // set the start time
@@ -148,7 +149,6 @@ var Speechology = (function(){
               }
           });
         
-        
         recognition.onerror = _endHelper(function(e){
             if (event.error === "not-allowed")
                 notAllowed = true;
@@ -162,7 +162,7 @@ var Speechology = (function(){
                 //sometimes on mobile phones, the onnomatch event is thrown immediately. 
                 // in that case, we don't want to repeat ourselves, just start listening again.
                 if (notAllowed)
-                    _speak("The microphone is blocked on this webpage. Please enable the microphone.", false, function(){});
+                    _textToSpeech("The microphone is blocked on this webpage. Please enable the microphone.", false, function(){});
                 //TODO, the not allowed speech will play when you hit continue
                 else if (e.timeStamp - recognition.startTime < 1000)
                     recognition.start();
@@ -175,14 +175,10 @@ var Speechology = (function(){
         return recognition;
     };
     
-    var _speak = function(textToSay, captureVoice, cb){
+    var _textToSpeech = function(textToSay, weAreAsking , cb){
         
         var utterance = new SpeechSynthesisUtterance(textToSay);
-        utterance.lang = 'en-US';
-        
-        //optional section argument
-        if (typeof captureVoice === 'function')
-            cb = captureVoice;
+        utterance.lang = __lang;
         
         //handle for utterance
         var handle = {
@@ -200,13 +196,8 @@ var Speechology = (function(){
                 }, 1000);
             },
             
-            captureVoice: function(cb){ return _captureVoice(handle, cb); },
+            captureVoice: function(cb){ return _speechRecognition(handle, cb); }
             
-            yesno: function(yes, no){ 
-                _captureVoice(handle, function(){
-                    this.yesno(yes, no);
-                });
-            }
         };
         
         utterance.onerror = function(e){ _log("utterance.onerror", e); };
@@ -216,10 +207,13 @@ var Speechology = (function(){
             _emit("audioEnd", textToSay);
             
             if (cb){
-                if (captureVoice)
+                
+                if (weAreAsking)
                     handle.captureVoice(cb);
+                
                 else
                     cb.call(handle);
+                
             } else
                 Speechology.next();
         });
@@ -233,95 +227,21 @@ var Speechology = (function(){
         __isRunning = false;
         if (__currentSpeechToText)
             __currentSpeechToText.recognition.abort();
+        
         speechSynthesis.cancel();
     };
+    
+    var _section = require('parts/Section');
 
-    // --------------------------- classes        ---------------------------------
-    // ----------- section 'class' 
-    function Section(startingElem){
-        this.__speechQueueIndex = 0;
-        this.__speechQueue = [];
-        this.__onFinish = [];
-        
-        //add our speech elements to the queue
-        this._parse(startingElem);
-    }
-        
-    //parent elem is an array-like structure of elements
-    Section.prototype._parse = function(elementsToParse){
-        var _this = this;
-        
-        var pushSpeech = function(elem){
-            if (__professors.hasOwnProperty(elem.getAttribute('data-professor')))
-                _this.__speechQueue.push({fun: __professors[elem.getAttribute('data-professor')], element: elem});
-            else
-                console.error("unknown professor name", elem.getAttribute('data-professor'));
-        };
-        
-        Array.prototype.forEach.call(elementsToParse, function(superElem){
-            
-            if (superElem.hasAttribute && superElem.hasAttribute('data-professor'))
-                pushSpeech(superElem);
-
-            var subElements = superElem.querySelectorAll('[data-professor]');
-            Array.prototype.forEach.call(subElements, function(elem){
-                pushSpeech(elem);
-            });
-        });
-    };
-    
-    Section.prototype.run = function(){
-        var _this = this;
-        _pause(); //cancel other speeches if they're going on.
-        
-        //wait until the other speeches' callbacks have run their course before starting again
-        /* the reason we decriment the speechQueueIndex by 1 is because, if the voice was paused at any point, 
-        and this is re-run, we want to start back at the last speech. */
-        
-        setTimeout(function(){ 
-            __currentSection = _this;
-            __nextEnabled = true;
-            _this.__speechQueueIndex--;
-            _this._next();
-        }, 1000); 
-    
-    };
-        
-    Section.prototype._next = function(){
-        this.__speechQueueIndex++;
-        if (this.__speechQueueIndex < this.__speechQueue.length){
-            var fun = this.__speechQueue[this.__speechQueueIndex].fun;
-            var elem = this.__speechQueue[this.__speechQueueIndex].element;
-            
-            if (!elem.disabled)
-                fun(elem);
-            else
-                this._next();
-        } else {
-            //emit the finished event
-            for (cb of this.__onFinish){
-                cb();
-            }
-        }
-    };
-    
-    Section.prototype.onFinish = function(cb){
-        this.__onFinish.push(cb);
-    }
-    
-    //------------------------------- pre-built callbacks ------------------------------
-    _on('voiceCaptureResult', function(transcript){
-        if (transcript.indexOf('next') > -1){
-            _next();
-            return true;
-        }
-    });
-    
     //------------------------------- public functions -----------------------------------
     var _interface = {
         
-        speak: function(){
-            return _speak.apply(null, arguments);
+        speak: function( text, cb ){
+            return _textToSpeech( text, false, cb );
+        },
+        
+        ask: function( text, cb ){
+            return _textToSpeech( text, true, cb );
         },
         
         parse: function(element){
@@ -338,7 +258,7 @@ var Speechology = (function(){
                 element = [element];
             
             if (element.length !== 0)
-                return new Section(element);
+                return new _section(element);
             else
                 console.error("No Speechology elements found in: " , save); 
         },
@@ -369,194 +289,11 @@ var Speechology = (function(){
         compatible: true
     };
     
-    //------------------------------- pre-built professors -----------------------------
-    _interface.addProfessor('name', function(elem){
-        Speechology.speak("Please spell your " + (elem.getAttribute('data-name') || "") + " name", true,
-                      function(transcript){
-            transcript = this.removeSpaces(transcript);
-            elem.value = transcript;
-            this.confirm(transcript + " spelled, " + this.spellOut(transcript));
-        });
-    });
+    // --------------------- add ons --------------------------------------------------
+    require('Professors')(_interface.addProfessor);
+    require('parts/Pre-Built-callbacks')(_interface);
     
-    _interface.addProfessor('email', function(elem){
-        Speechology.speak("Please spell your email address up to the at symbol", true, 
-                          function(firstTranscript){
-            firstTranscript = this.removeSpaces(firstTranscript);
-            elem.value = firstTranscript;
-            this.confirm(this.spellOut(firstTranscript).replace(/\./g, "dot, "), function(){
-                elem.value = (firstTranscript += '@');
-                Speechology.speak("Please say or spell the remaining part of your email address", true, 
-                              function(lastTranscript){
-                    lastTranscript = this.removeSpaces(lastTranscript.replace('at', ""));
-                    elem.value = firstTranscript + lastTranscript;
-                    this.confirm(lastTranscript.replace(/\./g, "dot, "));
-                });
-            });
-        });     
-    });
     
-    _interface.addProfessor('phone-number', function(elem){
-        Speechology.speak("Please say the area code of your phone number", true, function(areaCodeTranscript){
-            var saved = this;
-            areaCodeTranscript = this.removeNonDigits(areaCodeTranscript);
-            elem.value = areaCodeTranscript;
-            if (areaCodeTranscript.length !== 3 && !isNaN(Number(areaCodeTranscript)))
-                this.unclear("Your area code must be 3 digits long.");
-            else{
-                Speechology.speak("Please say the remaining 7 digits of your phone number", true, function(remainingTranscript){
-                    remainingTranscript = this.removeNonDigits(remainingTranscript);
-                    elem.value = areaCodeTranscript + remainingTranscript;
-                    if (remainingTranscript.length !== 7 && !isNaN(Number(remainingTranscript)))
-                        this.unclear();
-                    else
-                        saved.confirm(this.spellOut(areaCodeTranscript + remainingTranscript));
-                });
-            }
-        });
-    });
-    
-    _interface.addProfessor('zipcode', function(elem){
-        Speechology.speak("Please say your zip code.", true, function(transcript){
-            transcript = this.removeNonDigits(transcript).substring(0,5);
-            elem.value = transcript;
-            if (transcript.length === 5)
-                this.confirm();
-            else
-                this.unclear();
-        });
-    });
-    
-    _interface.addProfessor("message", function(elem){
-        Speechology.speak("Would you like to add an additional message? Say yes or no.", true, function(t){
-            this.yesno(function(){
-                Speechology.speak("Say your message now", true, function(messageTranscript){
-                    var saved = this;
-                    elem.value = messageTranscript;
-                    Speechology.speak("Would you like to play back the message?", true, function(transcript){
-                        this.yesno(function(){
-                            saved.confirm();
-                        });
-                    });
-                });
-            });
-        });
-    });
-    
-    _interface.addProfessor('date', function(elem){
-        
-        var question = elem.getAttribute('data-date');
-        if (!question){
-            console.error("Professor 'date' requires an additional attribute 'data-date' which specifies what question to ask the user. Moving to next question.");
-            Speechology.next();
-            return;
-        }
-        
-        Speechology.speak(question, true, function(transcript){
-            var _this = this;
-            var year, month, day;
-            var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-            //go through what the person said and split it up
-            for (var part of transcript.split(' ')){
-                //try to parse to int
-                var num = parseInt(part);
-                if (isNaN(num)){
-                    //look for month
-                    for (var monthIndex in months){
-                          if (part.indexOf(months[monthIndex].toLowerCase()) > -1){
-                              month = Number(monthIndex) + 1;
-                              if (month < 10)
-                                  month = "0" + month;
-                          }
-                      }
-                } else {
-                    if ((num + "").length === 4)
-                        year = num;
-                    else{
-                        day = num;
-                        if (day < 10)
-                            day = "0" + day;
-                    }
-                }
-            }     
-
-
-            var finish = function(){
-                var final = year + '-' + month + '-' + day;
-                elem.value = final;
-                _this.confirm(final);
-            };
-                
-                
-            //see what isn't defined... then ask.
-            var findNextDatePart = function(){
-
-                var getYear = function(){
-                    Speechology.speak("Please say the year you were born", true, function(transcript){
-                        if (transcript.length === 4 && !isNaN(Number(transcript))){
-                            this.confirm(transcript, function(){
-                                year = Number(transcript);
-                                findNextDatePart();
-                            });
-                        }
-                        else
-                            this.unclear("Your year of birth must be four digits.");
-                    });
-                };
-
-                var getMonth = function(){
-                    Speechology.speak("Please say the month you were born.", true, function(transcript){
-                        var found = false;
-                          //loop through all the available months in the picker
-
-                          for (var monthIndex in months){
-                              if (transcript.indexOf(months[monthIndex].toLowerCase()) > -1){
-                                  month = Number(monthIndex) + 1;
-                                  if (month < 10)
-                                      month = "0" + month;
-                                  found = true;
-                              }
-                          }
-                        if (found)
-                            findNextDatePart();
-                        else
-                            this.unclear();
-                    });
-                };
-
-                var getDay = function(){
-                Speechology.speak("Please say the day you were born.", true, function(transcript){
-                          day = parseInt(transcript);
-                          if (day !== NaN && day < 32){
-                              if (day < 10)
-                                  day = "0" + day;
-                              this.confirm(transcript, function(){
-                                  findNextDatePart();
-                              });
-                          } else
-                              this.unclear("Please say two digits, representing the day you were born.");
-                      });
-                };
-
-                if (!year)
-                    getYear();
-                else if (!month)
-                    getMonth();
-                else if (!day)
-                    getDay();
-                else{
-                    finish();
-                }
-            };
-            
-            if (!year || !month || !day)
-                findNextDatePart();
-            else 
-                finish();
-        });
-    });
-        
-        
     return _interface;
+        
 })();
