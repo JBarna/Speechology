@@ -1,20 +1,21 @@
 $(document).ready(function(){
     
-    if (speechology.compatible){
+    if (Speechology.compatible){
         
-        speechology.addProfessor('myfield', function(elem){
-            speechology.speak("Say something for your field.", true, function(transcript){
+        Speechology.addProfessor('myfield', function(elem){
+            Speechology.speak("Say something for your field.", true, function(transcript){
                 elem.value = transcript;
                 this.confirm();
             });
         });
 
-        speechology.on('audioStart', function(text){
+        Speechology.on('audioStart', function(text){
             console.log(text); 
         });
         
-        myname = speechology.parse('#name');
-        email = speechology.parse('#email');
-        window.r = speechology.parse(document);r.
+        myname = Speechology.parse('#name');
+        email = Speechology.parse('#email');
+        window.r = Speechology.parse(document);
     }
+    
 });

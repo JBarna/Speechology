@@ -3,7 +3,7 @@
 ##### [Speechology.js](https://jbarna.github.io/Speechology/) is a JavaScript library that puts the power of the [Web Speech API](https://dvcs.w3.org/hg/speech-api/raw-file/tip/speechapi.html) directly in your hands. Speechology.js provides voice and audio interfaces to your website, for those users who need it . [See an example](https://jbarna.github.io/Speechology/)
 
 ## Why?
-Web is becoming the *universal platform* for applications, yet lacks some of the most essential accessibility tools. **Using Speechology.js you can target:** Blind, visualy impaired, motor skilled challenged, and cognitively challenged, *all while providing a new interface for regular users.*
+Web is becoming the *universal platform* for applications, yet lacks some of the most essential accessibility tools. **Using Speechology.js you can target:** Blind, visually impaired, motor skilled challenged, and cognitively challenged, *all while providing a new interface for regular users.*
 
 ## How easy is it?
 1) Include Speechology.js in your HTML: 

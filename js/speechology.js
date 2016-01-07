@@ -33,6 +33,8 @@ var Speechology = (function(){
     var _emit = function(eventName){
         var args = Array.prototype.slice.call(arguments, 1);
         for (var cb of __callbacks[eventName]){
+            
+            // if user cb returns true, stop executing callbacks
             if(cb.apply(null, args))
                 return true;
         }
@@ -40,23 +42,24 @@ var Speechology = (function(){
     
     var _on = function(eventName, cb){
       
-        if (typeof cb !== 'function'){
-            throw new Error("callback for event " + eventName + " must be a function.");
-            return;
-        }
+        if (typeof eventName !== 'string')
+            throw new Error("Event name " + eventName + " must be a string.");
+        
+        if (typeof cb !== 'function')
+            throw new Error("Callback for event " + eventName + " must be a function.");
+        
+        if (!__callbacks.hasOwnProperty(eventName))
+            throw new Error("Incorrect Speechology.on event name: " + eventName);
       
-        var found = false;
+        __callbacks[eventName].push(cb);
       
-        for (var event in __callbacks){
-            if (event === eventName){
-                found = true;
-                __callbacks[event].push(cb);
-            }
-        }
-      
-        if (!found) throw new Error("Incorrect Speechology.on event name: " + eventName);
     };
     
+    /* ------------------
+    * This is needed because when we "abort" a Speech to Text or
+    * a Text to Speech, the end event still fires. We need a way
+    * to know if we've aborted. So we make our own variable __isRunning  
+    */ 
     var _endHelper = function(cb){
         return function(e){ 
             if (__isRunning) cb(e); 
@@ -64,7 +67,11 @@ var Speechology = (function(){
     };
     
     var _captureVoice = function(utteranceHandle, cb){
+        
+        // Voice variables specific to this webkitSPeechRecognition instance
         var recognition = new webkitSpeechRecognition(); 
+        recognition.lang = 'en-US';
+        
         var successfull = false;
         var notAllowed = false;
         var transcript; 
@@ -74,7 +81,7 @@ var Speechology = (function(){
             
             confirm: function(modifiedTranscript, yesCB){ 
                 
-                //since both arguments are optional... check to see if first one is function.
+                // since both arguments are optional... check to see if first one is function.
                 if (typeof modifiedTranscript === "function"){
                     yesCB = modifiedTranscript;
                     modifiedTranscript = transcript;
@@ -122,7 +129,7 @@ var Speechology = (function(){
             
         };
         
-        //set the start time
+        // set the start time
         recognition.onstart = function(e){ 
             recognition.startTime = e.timeStamp; 
             __currentSpeechToText = handle;
@@ -169,7 +176,9 @@ var Speechology = (function(){
     };
     
     var _speak = function(textToSay, captureVoice, cb){
+        
         var utterance = new SpeechSynthesisUtterance(textToSay);
+        utterance.lang = 'en-US';
         
         //optional section argument
         if (typeof captureVoice === 'function')
@@ -179,8 +188,10 @@ var Speechology = (function(){
         var handle = {
             utterance: utterance,
             speak: function(){ 
-                //must use a timeout or the onend function won't be called... its weird
-                //relevant StackOverflow: http://stackoverflow.com/questions/23483990/speechsynthesis-api-onend-callback-not-working#
+                
+                // must use a timeout or the onend function won't be called... its weird
+                // relevant StackOverflow: http://stackoverflow.com/questions/23483990/speechsynthesis-api-onend-callback-not-working#
+                
                 setTimeout(function(){ 
                     window.speechSynthesis.speak(utterance); 
                     __currentTextToSpeech = handle;
@@ -188,7 +199,9 @@ var Speechology = (function(){
                     _emit('audioStart', textToSay);
                 }, 1000);
             },
+            
             captureVoice: function(cb){ return _captureVoice(handle, cb); },
+            
             yesno: function(yes, no){ 
                 _captureVoice(handle, function(){
                     this.yesno(yes, no);
@@ -197,8 +210,11 @@ var Speechology = (function(){
         };
         
         utterance.onerror = function(e){ _log("utterance.onerror", e); };
+        
         utterance.onend = _endHelper(function(){
+            
             _emit("audioEnd", textToSay);
+            
             if (cb){
                 if (captureVoice)
                     handle.captureVoice(cb);
@@ -213,14 +229,15 @@ var Speechology = (function(){
     };
     
     var _pause = function(){ 
+        
         __isRunning = false;
         if (__currentSpeechToText)
             __currentSpeechToText.recognition.abort();
         speechSynthesis.cancel();
     };
 
-    
-    // --------------------------- section 'class' --------------------------------
+    // --------------------------- classes        ---------------------------------
+    // ----------- section 'class' 
     function Section(startingElem){
         this.__speechQueueIndex = 0;
         this.__speechQueue = [];
@@ -302,6 +319,7 @@ var Speechology = (function(){
     
     //------------------------------- public functions -----------------------------------
     var _interface = {
+        
         speak: function(){
             return _speak.apply(null, arguments);
         },
@@ -315,10 +333,9 @@ var Speechology = (function(){
             else if (typeof element === "string")
                 element = document.querySelectorAll(element);
             
-            //user passed a single element in, need to format to array
-            else if (!element.length){
+            // user passed a single element in, need to format to array
+            else if (!element.length)
                 element = [element];
-            }
             
             if (element.length !== 0)
                 return new Section(element);
@@ -539,7 +556,6 @@ var Speechology = (function(){
                 finish();
         });
     });
-
         
         
     return _interface;
