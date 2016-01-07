@@ -231,7 +231,7 @@ var Speechology = (function(){
         speechSynthesis.cancel();
     };
     
-    var _section = require('parts/Section');
+    var _section = require('./parts/Section');
 
     //------------------------------- public functions -----------------------------------
     var _interface = {
@@ -290,8 +290,8 @@ var Speechology = (function(){
     };
     
     // --------------------- add ons --------------------------------------------------
-    require('Professors')(_interface.addProfessor);
-    require('parts/Pre-Built-callbacks')(_interface);
+    require('./Professors')(_interface.addProfessor);
+    require('./parts/Pre-Built-callbacks')(_interface);
     
     
     return _interface;

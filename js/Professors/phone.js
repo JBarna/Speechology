@@ -1,4 +1,4 @@
-_interface.addProfessor('phone-number', function(elem){
+module.exports = function(elem){
     Speechology.speak("Please say the area code of your phone number", true, function(areaCodeTranscript){
         var saved = this;
         areaCodeTranscript = this.removeNonDigits(areaCodeTranscript);
@@ -16,4 +16,4 @@ _interface.addProfessor('phone-number', function(elem){
             });
         }
     });
-});
+};

@@ -1,4 +1,4 @@
-_interface.addProfessor('zipcode', function(elem){
+module.exports = function(elem){
     Speechology.speak("Please say your zip code.", true, function(transcript){
         transcript = this.removeNonDigits(transcript).substring(0,5);
         elem.value = transcript;
@@ -7,4 +7,4 @@ _interface.addProfessor('zipcode', function(elem){
         else
             this.unclear();
     });
-});
+};

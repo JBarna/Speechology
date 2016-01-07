@@ -1,4 +1,4 @@
-_interface.addProfessor('date', function(elem){
+module.exports = function(elem){
 
     var question = elem.getAttribute('data-date');
     if (!question){
@@ -110,4 +110,4 @@ _interface.addProfessor('date', function(elem){
         else 
             finish();
     });
-});
+};

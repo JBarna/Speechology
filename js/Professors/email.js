@@ -1,4 +1,4 @@
-_interface.addProfessor('email', function(elem){
+module.exports = function(elem){
     Speechology.speak("Please spell your email address up to the at symbol", true, 
                       function(firstTranscript){
         firstTranscript = this.removeSpaces(firstTranscript);
@@ -13,4 +13,4 @@ _interface.addProfessor('email', function(elem){
             });
         });
     });     
-});
+};
