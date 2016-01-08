@@ -3,7 +3,7 @@ $(document).ready(function(){
     if (Speechology.compatible){
         
         Speechology.addProfessor('myfield', function(elem){
-            Speechology.speak("Say something for your field.", true, function(transcript){
+            Speechology.ask("Say something for your field.", function(transcript){
                 elem.value = transcript;
                 this.confirm();
             });
