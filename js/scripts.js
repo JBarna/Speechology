@@ -13,8 +13,6 @@ $(document).ready(function(){
             console.log(text); 
         });
         
-        myname = Speechology.parse('#name');
-        email = Speechology.parse('#email');
         window.r = Speechology.parse(document);
     }
     
