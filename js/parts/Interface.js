@@ -52,6 +52,8 @@ module.exports = {
     },
 
     on: function(){ funcs.on.apply(null, arguments); },
+    
+    addImage: funcs.addImage,
 
     compatible: true
 };

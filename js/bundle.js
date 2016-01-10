@@ -114,7 +114,7 @@ module.exports = function(elem){
             finish();
     });
 };
-},{"../parts/Interface":10}],2:[function(require,module,exports){
+},{"../parts/Interface":11}],2:[function(require,module,exports){
 var interface = require('../parts/Interface');
 
 module.exports = function(elem){
@@ -134,7 +134,7 @@ module.exports = function(elem){
     });     
 };
 
-},{"../parts/Interface":10}],3:[function(require,module,exports){
+},{"../parts/Interface":11}],3:[function(require,module,exports){
 var interface = require('../parts/Interface');
 
 interface.addProfessor( 'date', require('./date') );
@@ -144,7 +144,7 @@ interface.addProfessor( 'name', require('./name') );
 interface.addProfessor( 'phone', require('./phone') );
 interface.addProfessor( 'zipcode', require('./zipcode') );
 
-},{"../parts/Interface":10,"./date":1,"./email":2,"./message":4,"./name":5,"./phone":6,"./zipcode":7}],4:[function(require,module,exports){
+},{"../parts/Interface":11,"./date":1,"./email":2,"./message":4,"./name":5,"./phone":6,"./zipcode":7}],4:[function(require,module,exports){
 var interface = require('../parts/Interface');
 
 module.exports = function( elem ){
@@ -164,7 +164,7 @@ module.exports = function( elem ){
     });
 };
 
-},{"../parts/Interface":10}],5:[function(require,module,exports){
+},{"../parts/Interface":11}],5:[function(require,module,exports){
 var interface = require('../parts/Interface');
 
 module.exports = function(elem){
@@ -176,7 +176,7 @@ module.exports = function(elem){
     });
 };
 
-},{"../parts/Interface":10}],6:[function(require,module,exports){
+},{"../parts/Interface":11}],6:[function(require,module,exports){
 var interface = require('../parts/Interface');
 
 module.exports = function(elem){
@@ -198,7 +198,7 @@ module.exports = function(elem){
         }
     });
 };
-},{"../parts/Interface":10}],7:[function(require,module,exports){
+},{"../parts/Interface":11}],7:[function(require,module,exports){
 var interface = require('../parts/Interface');
 
 module.exports = function(elem){
@@ -213,7 +213,17 @@ module.exports = function(elem){
 
     });
 };
-},{"../parts/Interface":10}],8:[function(require,module,exports){
+},{"../parts/Interface":11}],8:[function(require,module,exports){
+module.exports = function( size ){
+    
+    return ["data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='",
+            size,
+            "' height='",
+            size,
+            "' viewBox='0 0 512 512'%3E%3Cpath d='M256 353.5c43.7 0 79-37.5 79-83.5V115.5c0-46-35.3-83.5-79-83.5s-79 37.5-79 83.5V270c0 46 35.3 83.5 79 83.5z'/%3E%3Cpath d='M367 192v79.7c0 60.2-49.8 109.2-110 109.2s-110-49-110-109.2V192h-19v79.7c0 67.2 53 122.6 120 127.5V462h-73v18h161v-18h-69v-62.8c66-4.9 117-60.3 117-127.5V192h-17z'/%3E%3C/svg%3E"].join("");
+    
+}
+},{}],9:[function(require,module,exports){
 // webspeech
 window.Speechology = (function(){
     "use strict";
@@ -223,17 +233,13 @@ window.Speechology = (function(){
         return { compatible: false };
     }
     
-    //require('./parts/Variables');
-    //require('./parts/Functions');
-    
-    // --------------------- add ons --------------------------------------------------
     require('./Professors');
     require('./parts/Pre-Built-callbacks');
     
     return require('./parts/Interface');
         
 })();
-},{"./Professors":3,"./parts/Interface":10,"./parts/Pre-Built-callbacks":11}],9:[function(require,module,exports){
+},{"./Professors":3,"./parts/Interface":11,"./parts/Pre-Built-callbacks":12}],10:[function(require,module,exports){
 module.exports = (function(){
     
     var vars = require('./Variables');
@@ -511,6 +517,25 @@ module.exports = (function(){
         this.onFinish.push(cb);
     }
     
+    var addImage = function(input){
+        
+        // grab position info on input elem
+        var dems = input.getBoundingClientRect(),
+            offset = dems.height / 4;
+        
+        // create new element
+        var newElm = document.createElement('img');
+        
+        newElm.style.position = "absolute";
+        newElm.style.left = dems.left + dems.width - (offset * 3) + "px";
+        newElm.style.top = dems.top + offset + "px";
+        
+        newElm.src = require('../images/mic_off')(offset * 2);
+        
+        document.body.appendChild(newElm);
+        
+    }
+    
     return {
         log: log,
         emit: emit,
@@ -519,12 +544,13 @@ module.exports = (function(){
         speechRecognition: speechRecognition,
         textToSpeech: textToSpeech,
         pause: pause,
-        section: section
+        section: section,
+        addImage: addImage
     };
 
 })();
 
-},{"./Variables":12}],10:[function(require,module,exports){
+},{"../images/mic_off":8,"./Variables":13}],11:[function(require,module,exports){
 var vars = require('./Variables'),
     funcs = require('./Functions');
 
@@ -579,10 +605,12 @@ module.exports = {
     },
 
     on: function(){ funcs.on.apply(null, arguments); },
+    
+    addImage: funcs.addImage,
 
     compatible: true
 };
-},{"./Functions":9,"./Variables":12}],11:[function(require,module,exports){
+},{"./Functions":10,"./Variables":13}],12:[function(require,module,exports){
 module.exports = function( _interface ){
     
     _interface.on('voiceCaptureResult', function(transcript){
@@ -593,7 +621,7 @@ module.exports = function( _interface ){
     });
     
 }
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // variables to be shared with the project
 
 exports.professors = {};
@@ -613,4 +641,4 @@ exports.callbacks = {
     'voiceCaptureEnd': [],
     'voiceCaptureResult': [],
 };
-},{}]},{},[8]);
+},{}]},{},[9]);

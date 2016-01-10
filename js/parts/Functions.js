@@ -275,6 +275,25 @@ module.exports = (function(){
         this.onFinish.push(cb);
     }
     
+    var addImage = function(input){
+        
+        // grab position info on input elem
+        var dems = input.getBoundingClientRect(),
+            offset = dems.height / 4;
+        
+        // create new element
+        var newElm = document.createElement('img');
+        
+        newElm.style.position = "absolute";
+        newElm.style.left = dems.left + dems.width - (offset * 3) + "px";
+        newElm.style.top = dems.top + offset + "px";
+        
+        newElm.src = require('../images/mic_off')(offset * 2);
+        
+        document.body.appendChild(newElm);
+        
+    }
+    
     return {
         log: log,
         emit: emit,
@@ -283,7 +302,8 @@ module.exports = (function(){
         speechRecognition: speechRecognition,
         textToSpeech: textToSpeech,
         pause: pause,
-        section: section
+        section: section,
+        addImage: addImage
     };
 
 })();

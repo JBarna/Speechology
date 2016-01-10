@@ -7,7 +7,6 @@ window.Speechology = (function(){
         return { compatible: false };
     }
     
-    // --------------------- add ons --------------------------------------------------
     require('./Professors');
     require('./parts/Pre-Built-callbacks');
     
