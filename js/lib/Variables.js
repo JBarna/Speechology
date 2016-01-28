@@ -8,6 +8,7 @@ exports.currentSection = null;
 exports.nextEnabled = true;
 exports.lang = 'en-US';
 exports.DEBUG = true;
+exports.iconNum = 0;
 
 //callbacks
 exports.callbacks = {

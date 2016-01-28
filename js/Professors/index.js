@@ -1,4 +1,4 @@
-var interface = require('../parts/Interface');
+var interface = require('../lib/Interface');
 
 interface.addProfessor( 'date', require('./date') );
 interface.addProfessor( 'email', require('./email') );

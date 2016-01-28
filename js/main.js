@@ -8,8 +8,8 @@ window.Speechology = (function(){
     }
     
     require('./Professors');
-    require('./parts/Pre-Built-callbacks');
+    require('./lib/Pre-Built-callbacks');
     
-    return require('./parts/Interface');
+    return require('./lib/Interface');
         
 })();

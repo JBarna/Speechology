@@ -1,10 +1,9 @@
-var interface = require('../parts/Interface');
+var interface = require('../lib/Interface');
 
 module.exports = function(elem){
-    interface.ask("Please spell your " + (elem.getAttribute('data-name') || "") + " name",
-                  function(transcript){
-        transcript = this.removeSpaces(transcript);
+    interface.ask("Please spell your " + (elem.getAttribute('data-name') || "") + " name", function( sst ){
+        transcript = sst.removeSpaces();
         elem.value = transcript;
-        this.confirm(transcript + " spelled, " + this.spellOut(transcript));
+        sst.confirm(transcript + " spelled, " + sst.spellOut(transcript));
     });
 };

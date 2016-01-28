@@ -1,4 +1,4 @@
-var interface = require('../parts/Interface');
+var interface = require('../lib/Interface');
 
 module.exports = function(elem){
 
@@ -9,13 +9,13 @@ module.exports = function(elem){
         return;
     }
 
-    interface.ask(question, function(transcript){
-        var _this = this;
+    interface.ask(question, function(sst){
+        
         var year, month, day;
         var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
         //go through what the person said and split it up
-        for (var part of transcript.split(' ')){
+        for (var part of sst.transcript.split(' ')){
             //try to parse to int
             var num = parseInt(part);
             if (isNaN(num)){
@@ -42,7 +42,7 @@ module.exports = function(elem){
         var finish = function(){
             var final = year + '-' + month + '-' + day;
             elem.value = final;
-            _this.confirm(final);
+            sst.confirm(final);
         };
 
 
@@ -50,25 +50,25 @@ module.exports = function(elem){
         var findNextDatePart = function(){
 
             var getYear = function(){
-                interface.ask("Please say the year you were born", function(transcript){
-                    if (transcript.length === 4 && !isNaN(Number(transcript))){
-                        this.confirm(transcript, function(){
-                            year = Number(transcript);
+                interface.ask("Please say the year you were born", function(sst){
+                    if (sst.transcript.length === 4 && !isNaN(Number(sst.transcript))){
+                        sst.confirm(function(){
+                            year = +sst.transcript;
                             findNextDatePart();
                         });
                     }
                     else
-                        this.unclear("Your year of birth must be four digits.");
+                        sst.unclear("Your year of birth must be four digits.");
                 });
             };
 
             var getMonth = function(){
-                interface.ask("Please say the month you were born.", function(transcript){
+                interface.ask("Please say the month you were born.", function(sst){
                     var found = false;
                       //loop through all the available months in the picker
 
                       for (var monthIndex in months){
-                          if (transcript.indexOf(months[monthIndex].toLowerCase()) > -1){
+                          if (sst.transcript.indexOf(months[monthIndex].toLowerCase()) > -1){
                               month = Number(monthIndex) + 1;
                               if (month < 10)
                                   month = "0" + month;
@@ -78,21 +78,21 @@ module.exports = function(elem){
                     if (found)
                         findNextDatePart();
                     else
-                        this.unclear();
+                        sst.unclear();
                 });
             };
 
             var getDay = function(){
-            interface.ask("Please say the day you were born.", function(transcript){
-                      day = parseInt(transcript);
+            interface.ask("Please say the day you were born.", function(sst){
+                      day = +sst.transcript;
                       if (day !== NaN && day < 32){
                           if (day < 10)
                               day = "0" + day;
-                          this.confirm(transcript, function(){
+                          sst.confirm(function(){
                               findNextDatePart();
                           });
                       } else
-                          this.unclear("Please say two digits, representing the day you were born.");
+                          sst.unclear("Please say two digits, representing the day you were born.");
                   });
             };
 
