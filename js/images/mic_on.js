@@ -1,8 +1,7 @@
 module.exports = function( size ){
     
     
-    return 
-            ["data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='",
+    return ["data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='",
             size,
             "' height='",
             size,

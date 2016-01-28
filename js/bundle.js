@@ -10,13 +10,13 @@ module.exports = function(elem){
         return;
     }
 
-    interface.ask(question, function(transcript){
-        var _this = this;
+    interface.ask(question, function(sst){
+        
         var year, month, day;
         var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
         //go through what the person said and split it up
-        for (var part of transcript.split(' ')){
+        for (var part of sst.transcript.split(' ')){
             //try to parse to int
             var num = parseInt(part);
             if (isNaN(num)){
@@ -43,7 +43,7 @@ module.exports = function(elem){
         var finish = function(){
             var final = year + '-' + month + '-' + day;
             elem.value = final;
-            _this.confirm(final);
+            sst.confirm(final);
         };
 
 
@@ -51,25 +51,25 @@ module.exports = function(elem){
         var findNextDatePart = function(){
 
             var getYear = function(){
-                interface.ask("Please say the year you were born", function(transcript){
-                    if (transcript.length === 4 && !isNaN(Number(transcript))){
-                        this.confirm(transcript, function(){
-                            year = Number(transcript);
+                interface.ask("Please say the year you were born", function(sst){
+                    if (sst.transcript.length === 4 && !isNaN(Number(sst.transcript))){
+                        sst.confirm(function(){
+                            year = +sst.transcript;
                             findNextDatePart();
                         });
                     }
                     else
-                        this.unclear("Your year of birth must be four digits.");
+                        sst.unclear("Your year of birth must be four digits.");
                 });
             };
 
             var getMonth = function(){
-                interface.ask("Please say the month you were born.", function(transcript){
+                interface.ask("Please say the month you were born.", function(sst){
                     var found = false;
                       //loop through all the available months in the picker
 
                       for (var monthIndex in months){
-                          if (transcript.indexOf(months[monthIndex].toLowerCase()) > -1){
+                          if (sst.transcript.indexOf(months[monthIndex].toLowerCase()) > -1){
                               month = Number(monthIndex) + 1;
                               if (month < 10)
                                   month = "0" + month;
@@ -79,21 +79,21 @@ module.exports = function(elem){
                     if (found)
                         findNextDatePart();
                     else
-                        this.unclear();
+                        sst.unclear();
                 });
             };
 
             var getDay = function(){
-            interface.ask("Please say the day you were born.", function(transcript){
-                      day = parseInt(transcript);
+            interface.ask("Please say the day you were born.", function(sst){
+                      day = +sst.transcript;
                       if (day !== NaN && day < 32){
                           if (day < 10)
                               day = "0" + day;
-                          this.confirm(transcript, function(){
+                          sst.confirm(function(){
                               findNextDatePart();
                           });
                       } else
-                          this.unclear("Please say two digits, representing the day you were born.");
+                          sst.unclear("Please say two digits, representing the day you were born.");
                   });
             };
 
@@ -114,27 +114,31 @@ module.exports = function(elem){
             finish();
     });
 };
-},{"../lib/Interface":13}],2:[function(require,module,exports){
+},{"../lib/Interface":12}],2:[function(require,module,exports){
 var interface = require('../lib/Interface');
 
 module.exports = function(elem){
-    interface.ask("Please spell your email address up to the at symbol", 
-                      function(firstTranscript){
-        firstTranscript = this.removeSpaces(firstTranscript);
+    
+    interface.ask("Please spell your email address up to the at symbol", function(firstSST){
+        
+        firstTranscript = firstSST.removeSpaces();
         elem.value = firstTranscript;
-        this.confirm(this.spellOut(firstTranscript).replace(/\./g, "dot, "), function(){
+        
+        firstSST.confirm( firstSST.spellOut( firstTranscript ).replace(/\./g, "dot, "), function(){
             elem.value = (firstTranscript += '@');
-            interface.ask("Please say or spell the remaining part of your email address", 
-                          function(lastTranscript){
-                lastTranscript = this.removeSpaces(lastTranscript.replace('at', ""));
+            interface.ask("Please say or spell the remaining part of your email address", function(lastSST){
+                
+                // incase they say the "@" symbol... we already added it so just get rid of it
+                var lastTranscript = lastSST.removeSpaces( lastSST.transcript.replace('at', ""));
+                
                 elem.value = firstTranscript + lastTranscript;
-                this.confirm(lastTranscript.replace(/\./g, "dot, "));
+                this.confirm( lastTranscript.replace(/\./g, "dot, "));
             });
         });
     });     
 };
 
-},{"../lib/Interface":13}],3:[function(require,module,exports){
+},{"../lib/Interface":12}],3:[function(require,module,exports){
 var interface = require('../lib/Interface');
 
 interface.addProfessor( 'date', require('./date') );
@@ -144,76 +148,83 @@ interface.addProfessor( 'name', require('./name') );
 interface.addProfessor( 'phone', require('./phone') );
 interface.addProfessor( 'zipcode', require('./zipcode') );
 
-},{"../lib/Interface":13,"./date":1,"./email":2,"./message":4,"./name":5,"./phone":6,"./zipcode":7}],4:[function(require,module,exports){
+},{"../lib/Interface":12,"./date":1,"./email":2,"./message":4,"./name":5,"./phone":6,"./zipcode":7}],4:[function(require,module,exports){
 var interface = require('../lib/Interface');
 
 module.exports = function( elem ){
     
-    interface.ask("Would you like to add an additional message? Say yes or no.", function(t){
-        this.yesno(function(){
-            interface.ask("Say your message now", function(messageTranscript){
-                var saved = this;
-                elem.value = messageTranscript;
-                interface.ask("Would you like to play back the message?", function(transcript){
-                    this.yesno(function(){
-                        saved.confirm();
+    interface.ask("Would you like to add an additional message? Say yes or no.", function( sst ){
+        sst.yesno(function( yes ){
+            if ( yes ){
+                interface.ask("Say your message now", function( messageSST ){
+                    
+                    elem.value = messageTranscript;
+                    interface.ask("Would you like to play back the message?", function( sst ){
+                        sst.yesno(function(){
+                            messageSST.confirm();
+                        });
                     });
                 });
-            });
+            } // end yes
         });
     });
 };
 
-},{"../lib/Interface":13}],5:[function(require,module,exports){
+},{"../lib/Interface":12}],5:[function(require,module,exports){
 var interface = require('../lib/Interface');
 
 module.exports = function(elem){
-    interface.ask("Please spell your " + (elem.getAttribute('data-name') || "") + " name",
-                  function(transcript){
-        transcript = this.removeSpaces(transcript);
+    interface.ask("Please spell your " + (elem.getAttribute('data-name') || "") + " name", function( sst ){
+        transcript = sst.removeSpaces();
         elem.value = transcript;
-        this.confirm(transcript + " spelled, " + this.spellOut(transcript));
+        sst.confirm(transcript + " spelled, " + sst.spellOut(transcript));
     });
 };
 
-},{"../lib/Interface":13}],6:[function(require,module,exports){
-var interface = require('../lib/Interface');
-
-module.exports = function(elem){
-    interface.ask("Please say the area code of your phone number", function(areaCodeTranscript){
-        var saved = this;
-        areaCodeTranscript = this.removeNonDigits(areaCodeTranscript);
-        elem.value = areaCodeTranscript;
-        if (areaCodeTranscript.length !== 3 && !isNaN(Number(areaCodeTranscript)))
-            this.unclear("Your area code must be 3 digits long.");
-        else{
-            interface.ask("Please say the remaining 7 digits of your phone number", function(remainingTranscript){
-                remainingTranscript = this.removeNonDigits(remainingTranscript);
-                elem.value = areaCodeTranscript + remainingTranscript;
-                if (remainingTranscript.length !== 7 && !isNaN(Number(remainingTranscript)))
-                    this.unclear();
-                else
-                    saved.confirm(this.spellOut(areaCodeTranscript + remainingTranscript));
-            });
-        }
-    });
-};
-},{"../lib/Interface":13}],7:[function(require,module,exports){
+},{"../lib/Interface":12}],6:[function(require,module,exports){
 var interface = require('../lib/Interface');
 
 module.exports = function(elem){
     
-    interface.ask("Please say your zip code.", function(transcript){
-        transcript = this.removeNonDigits(transcript).substring(0,5);
+    interface.ask("Please say the area code of your phone number", function(areaCodeSST){
+
+        areaCodeTranscript = areaCodeSST.removeNonDigits();
+        
+        elem.value = areaCodeTranscript;
+        
+        if (areaCodeTranscript.length !== 3 && !isNaN(Number(areaCodeTranscript)))
+            areaCodeSST.unclear("Your area code must be 3 digits long.");
+        else{
+            
+            interface.ask("Please say the remaining 7 digits of your phone number", function(restSST){
+                remainingTranscript = restSST.removeNonDigits();
+                elem.value = areaCodeTranscript + remainingTranscript;
+                
+                if (remainingTranscript.length !== 7 || isNaN( +remainingTranscript ))
+                    this.unclear();
+                else
+                    areaCodeSST.confirm (restSST.spellOut(areaCodeTranscript + remainingTranscript));
+            });
+        }
+    });
+};
+},{"../lib/Interface":12}],7:[function(require,module,exports){
+var interface = require('../lib/Interface');
+
+module.exports = function(elem){
+    
+    interface.ask("Please say your zip code.", function( handle ){
+        var transcript = handle.removeNonDigits().substring(0,5);
         elem.value = transcript;
+        
         if (transcript.length === 5)
-            this.confirm();
+            handle.confirm();
         else
-            this.unclear();
+            handle.unclear();
 
     });
 };
-},{"../lib/Interface":13}],8:[function(require,module,exports){
+},{"../lib/Interface":12}],8:[function(require,module,exports){
 module.exports = {
     
     mic_off: require('./mic_off'),
@@ -223,8 +234,7 @@ module.exports = {
 },{"./mic_off":9,"./mic_on":10}],9:[function(require,module,exports){
 module.exports = function( size ){
     
-    return 
-            ["data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='",
+    return ["data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='",
             size,
             "' height='",
             size,
@@ -236,8 +246,7 @@ module.exports = function( size ){
 module.exports = function( size ){
     
     
-    return 
-            ["data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='",
+    return ["data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='",
             size,
             "' height='",
             size,
@@ -246,29 +255,14 @@ module.exports = function( size ){
     
 }
 },{}],11:[function(require,module,exports){
-// webspeech
-window.Speechology = (function(){
-    "use strict";
-    
-    //check compatibility
-    if (!('webkitSpeechRecognition' in window) || !('speechSynthesis' in window)){
-        return { compatible: false };
-    }
-    
-    require('./Professors');
-    require('./lib/Pre-Built-callbacks');
-    
-    return require('./lib/Interface');
-        
-})();
-},{"./Professors":3,"./lib/Interface":13,"./lib/Pre-Built-callbacks":14}],12:[function(require,module,exports){
 var vars = require('./Variables'),
     images = require('../images/');
 
 // ----------------------  helper functions --------------------
 var log = exports.log = vars.DEBUG ? console.log.bind(console, "SPEECHOLOGY DEBUG: ") : function(){};
 
-var emit = exports.emit = function(eventName){
+exports.emit = emit;
+function emit(eventName){
     var args = Array.prototype.slice.call(arguments, 1);
     for (var cb of vars.callbacks[eventName]){
 
@@ -278,7 +272,8 @@ var emit = exports.emit = function(eventName){
     }
 };
 
-var on = exports.on = function(eventName, cb){
+exports.on = on;
+function on(eventName, cb){
 
     if (typeof eventName !== 'string')
         throw new Error("Event name " + eventName + " must be a string.");
@@ -298,13 +293,15 @@ var on = exports.on = function(eventName, cb){
 * a Text to Speech, the end event still fires. We need a way
 * to know if we've aborted. So we make our own variable vars.isRunning  
 */ 
-var endHelper = exports.endHelper = function(cb){
+exports.endHelper = endHelper;
+function endHelper(cb){
     return function(e){ 
         if (vars.isRunning) cb(e); 
     };
 };
 
-var handleQuerySelector = exports.handleQuerySelector = function( selector ){
+exports.handleQuerySelector = handleQuerySelector;
+function handleQuerySelector( selector ){
     
     var elements; 
     
@@ -325,12 +322,39 @@ var handleQuerySelector = exports.handleQuerySelector = function( selector ){
     
 }
 
+exports.addIconToInput = addIconToInput;
+function addIconToInput(input){
+
+    // grab position info on input elem
+    var dems = input.getBoundingClientRect(),
+        offset = dems.height / 4;
+    
+    // create unique id for this icon
+    var id = "speech-icon-" + vars.iconNum++;
+    
+    // save the id of this icon in the original input element
+    input.setAttribute('data-speechology-icon-id', id);
+    
+    // create new element
+    var newElm = document.createElement('img');
+    newElm.id = id;
+
+    newElm.style.position = "absolute";
+    newElm.style.left = dems.left + dems.width - (offset * 3) + "px";
+    newElm.style.top = dems.top + offset + "px";
+
+    newElm.src = images.mic_off(offset * 2);
+
+    document.body.appendChild(newElm);
+
+}
+
 // ----------------------- speech functions -----------------------------
-var speechRecognition = exports.speechRecognition = function(utteranceHandle, cb){
+exports.speechRecognition = speechRecognition;
+function speechRecognition(utteranceHandle, cb){
 
     // Voice variables specific to this webkitSPeechRecognition instance
     var recognition = new webkitSpeechRecognition(); 
-    recognition.lang = vars.lang;
 
     var successfull = false;
     var notAllowed = false;
@@ -338,6 +362,8 @@ var speechRecognition = exports.speechRecognition = function(utteranceHandle, cb
 
     var handle = {
         recognition: recognition,
+        
+        transcript: transcript,
 
         confirm: function(modifiedTranscript, yesCB){ 
 
@@ -349,17 +375,20 @@ var speechRecognition = exports.speechRecognition = function(utteranceHandle, cb
                 modifiedTranscript = modifiedTranscript || transcript;
 
             textToSpeech("I heard, " + modifiedTranscript + ". Is this correct? Say yes or no", true, 
-                   function(transcript){
-                this.yesno(function(){ yesCB? yesCB() : Speechology.next(); }, 
-                             function(){ utteranceHandle.speak(); }
-                );
+                   function(stt){
+                stt.yesno(function( yes ){ 
+                    if ( yes )
+                        yesCB? yesCB() : next();
+                    else utteranceHandle.speak();
+                });
             });
         },
-        yesno: function(yesCB, noCB){
+        
+        yesno: function(cb){
             if (transcript.indexOf('no') > -1)
-                noCB ? noCB() : Speechology.next();
+                cb(false);
             else if (transcript.indexOf('ye') > -1)
-                yesCB();
+                cb(true);
             else
                 handle.unclear();
         },
@@ -369,11 +398,13 @@ var speechRecognition = exports.speechRecognition = function(utteranceHandle, cb
                 utteranceHandle.speak(); 
             }); 
         },
+        
         //helper methods
         removeSpaces: function(stringInput){
             stringInput = stringInput || transcript;
             return stringInput.replace(/\s/g, '');
         },
+        
         spellOut: function(stringInput){
             stringInput = stringInput || transcript;
             var spelled = "";
@@ -382,6 +413,7 @@ var speechRecognition = exports.speechRecognition = function(utteranceHandle, cb
             spelled += ", ";
             return spelled;
         },
+        
         removeNonDigits: function(stringInput){
             stringInput = stringInput || transcript;
             return stringInput.replace(/[^0-9]+/g, '');  
@@ -389,6 +421,8 @@ var speechRecognition = exports.speechRecognition = function(utteranceHandle, cb
 
     };
 
+    recognition.lang = vars.lang;
+    
     // set the start time
     recognition.onstart = function(e){ 
         recognition.startTime = e.timeStamp; 
@@ -402,8 +436,11 @@ var speechRecognition = exports.speechRecognition = function(utteranceHandle, cb
             if (event.results[i].isFinal){
                 successfull = true;
                 transcript = event.results[i][0].transcript.toLowerCase();
+                
+                // So we emit the voiceCaptureResults. In case the callback wants to stop everything,
+                // we only call our CB if emit doesn't return true
                 if (!emit('voiceCaptureResult', transcript, utteranceHandle, handle))
-                    cb.call(handle, transcript);
+                    cb(handle);
             }
           }
       });
@@ -434,10 +471,10 @@ var speechRecognition = exports.speechRecognition = function(utteranceHandle, cb
     return recognition;
 };
 
-var textToSpeech = exports.textToSpeech = function(textToSay, weAreAsking , cb){
+exports.textToSpeech = textToSpeech;
+function textToSpeech(textToSay, weAreAsking , cb){
 
     var utterance = new SpeechSynthesisUtterance(textToSay);
-    utterance.lang = vars.lang;
 
     //handle for utterance
     var handle = {
@@ -448,6 +485,7 @@ var textToSpeech = exports.textToSpeech = function(textToSay, weAreAsking , cb){
             // relevant StackOverflow: http://stackoverflow.com/questions/23483990/speechsynthesis-api-onend-callback-not-working#
 
             setTimeout(function(){ 
+                
                 window.speechSynthesis.speak(utterance); 
                 vars.currentTextToSpeech = handle;
                 vars.isRunning = true;
@@ -458,6 +496,8 @@ var textToSpeech = exports.textToSpeech = function(textToSay, weAreAsking , cb){
         captureVoice: function(cb){ return speechRecognition(handle, cb); }
 
     };
+    
+    utterance.lang = vars.lang;
 
     utterance.onerror = function(e){ log("utterance.onerror", e); };
 
@@ -471,17 +511,18 @@ var textToSpeech = exports.textToSpeech = function(textToSay, weAreAsking , cb){
                 handle.captureVoice(cb);
 
             else
-                cb.call(handle);
+                cb(handle);
 
         } else
-            Speechology.next();
+            next();
     });
 
     handle.speak();
     return utterance;
 };
 
-var pause = exports.pause = function(){ 
+exports.pause = pause;
+function pause(){ 
 
     vars.isRunning = false;
     if (vars.currentSpeechToText)
@@ -490,8 +531,16 @@ var pause = exports.pause = function(){
     speechSynthesis.cancel();
 };
 
+exports.next = next;
+function next(){
+        
+    if (vars.nextEnabled && vars.currentSection)
+        vars.currentSection.funcs.next();
 
-var section = exports.section = function( startingElem ){
+}
+
+exports.section = section;
+function section( startingElem ){
     this.speechQueueIndex = 0;
     this.speechQueue = [];
     this.onFinish = [];
@@ -562,33 +611,19 @@ section.prototype.onFinish = function(cb){
     this.onFinish.push(cb);
 }
 
-var addIconToInput = exports.addIconToInput = function(input){
-
-    // grab position info on input elem
-    var dems = input.getBoundingClientRect(),
-        offset = dems.height / 4;
+section.prototype.addIcons = function(){
     
-    // create unique id for this icon
-    var id = "speech-icon-" + vars.iconNum++;
+    this.speechQueue.forEach(function( handle ){
+        
+        addIconToInput( handle.element );
+        
+    });
     
-    // save the id of this icon in the original input element
-    input.setAttribute('data-speechology-icon-id', id);
-    
-    // create new element
-    var newElm = document.createElement('img');
-    newElm.id = id;
-
-    newElm.style.position = "absolute";
-    newElm.style.left = dems.left + dems.width - (offset * 3) + "px";
-    newElm.style.top = dems.top + offset + "px";
-
-    newElm.src = images.mic_off(offset * 2);
-
-    document.body.appendChild(newElm);
-
 }
 
-},{"../images/":8,"./Variables":15}],13:[function(require,module,exports){
+
+
+},{"../images/":8,"./Variables":14}],12:[function(require,module,exports){
 var vars = require('./Variables'),
     funcs = require('./Functions');
 
@@ -614,17 +649,13 @@ module.exports = {
         vars.professors[name] = fun;
     },
 
-    next: function(){
-        if (vars.nextEnabled && vars.currentSection)
-            vars.currentSection.funcs.next();
-
-    },
+    next: funcs.next,
 
     disableNext: function(){
         vars.nextEnabled = false;
     },
 
-    pause: function(){ funcs.pause(); },
+    pause: funcs.pause,
 
     continue: function(){ 
         if (vars.currentTextToSpeech)
@@ -632,26 +663,10 @@ module.exports = {
     },
 
     on: function(){ funcs.on.apply(null, arguments); },
-    
-    addIcons: function( selector ){
-        
-        var elements = funcs.handleQuerySelector( selector );
-        
-        if ( elements ){
-            
-            Array.prototype.forEach.call(elements, function(elem){
-                
-                funcs.addIconToInput(elem);
-                
-            });
-        }
-            
-        
-    },
 
     compatible: true
 };
-},{"./Functions":12,"./Variables":15}],14:[function(require,module,exports){
+},{"./Functions":11,"./Variables":14}],13:[function(require,module,exports){
 module.exports = function( _interface ){
     
     _interface.on('voiceCaptureResult', function(transcript){
@@ -662,7 +677,7 @@ module.exports = function( _interface ){
     });
     
 }
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // variables to be shared with the project
 
 exports.professors = {};
@@ -683,4 +698,20 @@ exports.callbacks = {
     'voiceCaptureEnd': [],
     'voiceCaptureResult': [],
 };
-},{}]},{},[11]);
+},{}],15:[function(require,module,exports){
+// webspeech
+window.Speechology = (function(){
+    "use strict";
+    
+    //check compatibility
+    if (!('webkitSpeechRecognition' in window) || !('speechSynthesis' in window)){
+        return { compatible: false };
+    }
+    
+    require('./Professors');
+    require('./lib/Pre-Built-callbacks');
+    
+    return require('./lib/Interface');
+        
+})();
+},{"./Professors":3,"./lib/Interface":12,"./lib/Pre-Built-callbacks":13}]},{},[15]);

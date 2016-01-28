@@ -358,7 +358,7 @@ section.prototype.addIcons = function(){
     
     this.speechQueue.forEach(function( handle ){
         
-        addIconToInput( handle.elem );
+        addIconToInput( handle.element );
         
     });
     
